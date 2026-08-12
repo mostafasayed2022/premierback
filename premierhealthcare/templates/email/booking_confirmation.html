@@ -1,0 +1,83 @@
+{%load static%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmation</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f7fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 30px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+        <!-- Header -->
+        <tr>
+            <td style="background: linear-gradient(135deg, #007b8f, #004d5a); padding: 30px 40px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Appointment Confirmed</h1>
+                <p style="color: #c8e6e9; margin: 10px 0 0 0; font-size: 16px;">Thank you for choosing {{ clinic_name }}</p>
+            </td>
+        </tr>
+        <!-- Greeting -->
+        <tr>
+            <td style="padding: 30px 40px 10px 40px;">
+                <p style="font-size: 18px; color: #333333; margin: 0;">Dear <strong>{{ patient_name }}</strong>,</p>
+                <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 10px 0 0 0;">
+                    Your appointment has been successfully booked. Below are the details of your visit.
+                </p>
+            </td>
+        </tr>
+        <!-- Appointment Details -->
+        <tr>
+            <td style="padding: 20px 40px;">
+                <table width="100%" cellpadding="10" style="background-color: #f8fafb; border-radius: 6px; border: 1px solid #e0e6ea;">
+                    <tr>
+                        <td style="width: 35%; font-weight: 600; color: #333333;">Doctor</td>
+                        <td style="color: #555555;">Dr. {{ doctor_name }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: #333333;">Service</td>
+                        <td style="color: #555555;">{{ service_name }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: #333333;">Branch</td>
+                        <td style="color: #555555;">{{ branch_name }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: #333333;">Date</td>
+                        <td style="color: #555555;">{{ date }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 600; color: #333333;">Time</td>
+                        <td style="color: #555555;">{{ start_time }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <!-- Additional Info -->
+        <tr>
+            <td style="padding: 10px 40px 20px 40px;">
+                <p style="font-size: 15px; color: #777777; line-height: 1.6; margin: 0;">
+                    Please arrive 10 minutes before your scheduled time. If you need to reschedule or cancel, 
+                    please contact us at least 24 hours in advance.
+                </p>
+                <p style="font-size: 15px; color: #777777; line-height: 1.6; margin: 15px 0 0 0;">
+                    For any inquiries, feel free to reply to this email or call our support team.
+                </p>
+            </td>
+        </tr>
+        <!-- CTA Button -->
+        <tr>
+            <td style="padding: 0 40px 30px 40px; text-align: center;">
+                <a href="#" style="display: inline-block; padding: 12px 30px; background-color: #007b8f; color: #ffffff; text-decoration: none; border-radius: 4px; font-weight: 600;">Manage My Bookings</a>
+            </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+            <td style="background-color: #f0f3f5; padding: 20px 40px; text-align: center; border-top: 1px solid #e0e6ea;">
+                <p style="font-size: 13px; color: #999999; margin: 0;">
+                    &copy; {{ current_year }} {{ clinic_name }}. All rights reserved.<br>
+                    You received this email because you booked an appointment with us.
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
