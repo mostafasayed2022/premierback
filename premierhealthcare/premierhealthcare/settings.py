@@ -256,7 +256,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ==================== CELERY CONFIGURATION ====================
 from kombu import Queue
 
-CELERY_BROKER_URL = ("rediss://default:gQAAAAAAAgevAAIgcDJkY2NhMjU5Y2RjODk0MGVkYjgyZTNlOGRhMGJlZDAyYw@peaceful-perch-133039.upstash.io:6379/0")
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = None         # <-- disable result backend completely
 
 CELERY_TASK_IGNORE_RESULT = True     # you already have this
