@@ -227,6 +227,16 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     'core.staticfiles.NpmBuildFinder',   # your custom finder
 ]
+
+
+EMAIL_USE_TLS = True
+
+
+
+# Fix SSL hostname mismatch
+EMAIL_SSL_CERTFILE = None
+EMAIL_SSL_KEYFILE = None
+EMAIL_TIMEOUT = 30
 #email config
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
