@@ -22,11 +22,15 @@ DEBUG = False
 ALLOWED_HOSTS = [
     'premierhealthclinics.com',
     'www.premierhealthclinics.com',
+    'api.premierhealthclinics.com',
+
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://premierhealthclinics.com',
-    'https://www.premierhealthclinics.com',
+    'https://premierhealthclinics.com/',
+    'https://www.premierhealthclinics.com/',
+    'https://api.premierhealthclinics.com/',
+
 ]
 
 CORS_ALLOWED_ORIGINS = [
