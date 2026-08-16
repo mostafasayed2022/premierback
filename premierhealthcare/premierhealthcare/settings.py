@@ -19,10 +19,21 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'premierhealthclinics.com',
+    'www.premierhealthclinics.com',
+]
 
-CORS_ALLOWED_ORIGINS = ['http://*']
-CORS_ALLOW_ALL_ORIGINS = True 
+CSRF_TRUSTED_ORIGINS = [
+    'https://premierhealthclinics.com',
+    'https://www.premierhealthclinics.com',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    'https://premierhealthclinics.com',
+    'https://www.premierhealthclinics.com',
+]
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True  
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -73,6 +84,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 ROOT_URLCONF = 'premierhealthcare.urls'
 
