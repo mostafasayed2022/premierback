@@ -15,9 +15,9 @@ from apps.schema.registry import registry
 from apps.schema.base import AdminSchema 
 from .models import (
     Branch, Doctor, Patient, DoctorAvailability,
-    Booking, CustomUser,Department,Service,
-    GalleryImage,Gallery,GalleryCategory,Testimonial,
-    BranchGallery
+    Booking, CustomUser, Department, Service,
+    GalleryImage, Gallery, GalleryCategory, Testimonial,
+    BranchGallery, OfflineConversion,
 )
 from .serializers import (
     BranchSerializer,
@@ -42,9 +42,8 @@ class DepartmentSchema(AdminSchema):
     read_serializer_class  = DepartmentSerializer
     write_serializer_class = DepartmentSerializer
     list_display           = ["id", "name", "slug", "description", "is_active", "image_url"]
-    
-    search_fields          = []
-    ordering               = []
+    search_fields          = ["name", "description"]
+    ordering               = ["name"]
     exclude = ["image", "icon"]                     # 👈 remove the auto‑generated FK field & icon
 
     @classmethod
@@ -74,8 +73,7 @@ class ServiceSchema(AdminSchema):
     read_serializer_class  = ServiceSerializer
     write_serializer_class = ServiceSerializer
     list_display           = ["id", "name", "slug", "description", "is_active", "image_url"]
-    
-    search_fields          = []
+    search_fields          = ["name", "description", "department__name"]
     ordering               = ["slug"]
     exclude = ["image", "icon"]                     # 👈 remove the auto‑generated FK field & icon
 
@@ -139,7 +137,7 @@ class DoctorSchema(AdminSchema):
     read_serializer_class = DoctorSerializer
     write_serializer_class = DoctorSerializer
     list_display = ["id", "name", "specialization", "experience", "patients", "languages", "image_url", "is_active"]
-    search_fields = ["specialization"]
+    search_fields = ["specialization", "user__first_name", "user__last_name", "user__username", "user__email", "license_number"]
     ordering = ["-id"]
     exclude = ["image", "consultation_fee"]                     # 👈 remove auto‑generated FK & consultation_fee
 
@@ -164,6 +162,7 @@ class DoctorSchema(AdminSchema):
             elif f.name == "user":
                 f.filters = {"role": "doctor"}
         return fields
+
 @registry.register
 class PatientSchema(AdminSchema):
     model                  = Patient
@@ -171,7 +170,7 @@ class PatientSchema(AdminSchema):
     read_serializer_class  = PatientSerializer
     write_serializer_class = PatientSerializer
     list_display           = ["id", "name", "email", "gender", "date_of_birth", "phone_number","image_url"]
-    search_fields          = ["phone_number"]
+    search_fields          = ["phone_number", "user__first_name", "user__last_name", "user__username", "user__email"]
     ordering               = ["-id"]
     exclude                = ["medical_history", "user","image"]
     @classmethod
@@ -202,7 +201,7 @@ class DoctorAvailabilitySchema(AdminSchema):
     read_serializer_class  = DoctorAvailabilitySerializer
     write_serializer_class = DoctorAvailabilityWriteSerializer
     list_display           = ["id", "doctor_name", "branch_name", "weekday", "start_time", "end_time", "slot_duration_minutes"]
-    search_fields          = ["doctor__user__first_name", "doctor__user__last_name", "branch__name"]
+    search_fields          = ["doctor__user__first_name", "doctor__user__last_name", "doctor__user__username", "branch__name", "weekday"]
     ordering               = ["doctor", "weekday", "start_time"]
 
     @classmethod
@@ -227,7 +226,7 @@ class BookingSchema(AdminSchema):
     read_serializer_class  = BookingSerializer        
     write_serializer_class = BookingCreateSerializer  
     list_display           = ["id", "patient", "doctor", "service", "branch", "date", "status", "fee"]
-    search_fields          = ["patient__user__first_name", "doctor__user__first_name"]
+    search_fields          = ["patient__user__first_name", "patient__user__last_name", "patient__user__username", "patient__phone_number", "doctor__user__first_name", "doctor__user__last_name", "doctor__user__username", "service__name", "branch__name", "status"]
     ordering               = ["-date"]
     use_explicit_viewset   = True
 
@@ -239,7 +238,7 @@ class UserSchema(AdminSchema):
     read_serializer_class  = CustomUserSerializer
     write_serializer_class = CustomUserSerializer
     list_display           = ["id", "username", "email", "role", "is_staff", "is_active"]
-    search_fields          = ["username", "email"]
+    search_fields          = ["username", "email", "first_name", "last_name"]
     ordering               = ["-id"]
     filterset_fields       = ["role"]  
     exclude                = ["user_permissions", "groups"]
@@ -254,7 +253,7 @@ class TestimonialSchema(AdminSchema):
     read_serializer_class  = TestimonialSerializer
     write_serializer_class = TestimonialSerializer
     list_display           = ["id", "name", "rating", "is_active", "image_url", "video_file_url"]
-    search_fields          = ["name", "role"]
+    search_fields          = ["name", "role", "text"]
     ordering               = ["-id"]
     exclude                = ["image", "video", "name_ar", "role_ar", "text_ar"]
 
@@ -277,7 +276,7 @@ class GallerySchema(AdminSchema):
     read_serializer_class  = GallerySerializer
     write_serializer_class = GallerySerializer
     list_display           = ["id", "title", "category", "media_type", "is_active", "image_url", "video_file_url"]
-    search_fields          = ["title"]
+    search_fields          = ["title", "description", "category"]
     ordering               = ["-id"]
     exclude                = ["image", "video", "title_ar", "description_ar"]
 
@@ -306,7 +305,7 @@ class BranchGallerySchema(AdminSchema):
     read_serializer_class  = BranchGallerySerializer
     write_serializer_class = BranchGallerySerializer
     list_display           = ["id", "branch", "title", "image_url", "order", "is_active"]
-    search_fields          = ["title"]
+    search_fields          = ["title", "description", "branch__name"]
     ordering               = ["order", "-id"]
     exclude                = ["image", "title_ar", "description_ar"]
 
@@ -324,4 +323,13 @@ class BranchGallerySchema(AdminSchema):
                 f.required = True
             elif f.name == "image_url":
                 f.show_in_list = True
-        return fields
+        return fields
+
+
+@registry.register
+class OfflineConversionSchema(AdminSchema):
+    model                  = OfflineConversion
+    endpoint               = "/api/offline-conversions/"
+    list_display           = ["id", "booking", "event_name", "status", "value", "currency", "conversion_time"]
+    search_fields          = ["event_name", "status", "gclid", "fbclid", "utm_source", "utm_campaign"]
+    ordering               = ["-created_at"]

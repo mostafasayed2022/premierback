@@ -188,7 +188,7 @@ class Branch(models.Model):
     longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    services = models.ManyToManyField(Service, related_name="branches", blank=True,null=True)
+    services = models.ManyToManyField(Service, related_name="branches", blank=True)
 
     class Meta:
         ordering = ["name"]
@@ -353,9 +353,11 @@ class DoctorAvailability(models.Model):
 
 class BookingStatus(models.TextChoices):
     PENDING_PAYMENT = 'pending_payment', 'Pending Payment'
+    PENDING = 'pending', 'Pending'
     CONFIRMED = 'confirmed', 'Confirmed'
     CANCELLED = 'cancelled', 'Cancelled'
     COMPLETED = 'completed', 'Completed'
+    ATTENDED = 'attended', 'Attended'  # Patient physically attended
     EXPIRED = 'expired', 'Expired'
 
 
@@ -374,6 +376,35 @@ class Booking(models.Model):
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # ─── Attribution / Campaign Tracking Fields ──────────────────────────────────
+    # Zero-PII: only campaign/click IDs and landing page URLs are stored here.
+
+    # UTM parameters
+    utm_source = models.CharField(max_length=500, blank=True, null=True)
+    utm_medium = models.CharField(max_length=500, blank=True, null=True)
+    utm_campaign = models.CharField(max_length=500, blank=True, null=True)
+    utm_content = models.CharField(max_length=500, blank=True, null=True)
+    utm_term = models.CharField(max_length=500, blank=True, null=True)
+
+    # Ad platform campaign identifiers
+    campaign_id = models.CharField(max_length=500, blank=True, null=True)
+    adset_id = models.CharField(max_length=500, blank=True, null=True)
+    ad_id = models.CharField(max_length=500, blank=True, null=True)
+
+    # Google click IDs
+    gclid = models.CharField(max_length=500, blank=True, null=True)
+    gbraid = models.CharField(max_length=500, blank=True, null=True)
+    wbraid = models.CharField(max_length=500, blank=True, null=True)
+
+    # Platform click IDs
+    fbclid = models.CharField(max_length=500, blank=True, null=True)
+    ttclid = models.CharField(max_length=500, blank=True, null=True)
+    sc_click_id = models.CharField(max_length=500, blank=True, null=True)
+
+    # Attribution meta
+    landing_page = models.CharField(max_length=2000, blank=True, null=True)
+    referrer = models.CharField(max_length=2000, blank=True, null=True)
 
     class Meta:
         constraints = [
@@ -412,6 +443,61 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.booking_id} - {self.status}"
+
+
+class OfflineConversion(models.Model):
+    """
+    Records offline conversion events for appointment attendance and payments.
+    Idempotent: unique constraint on (booking, event_name).
+    """
+
+    class EventName(models.TextChoices):
+        APPOINTMENT_ATTENDED = "appointment_attended", "Appointment Attended"
+        PURCHASE = "purchase", "Purchase"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+
+    booking = models.ForeignKey(
+        "Booking",
+        on_delete=models.CASCADE,
+        related_name="offline_conversions",
+    )
+    event_name = models.CharField(
+        max_length=100,
+        choices=EventName.choices,
+    )
+    status = models.CharField(
+        max_length=50,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    currency = models.CharField(max_length=10, default="EGP")
+    conversion_time = models.DateTimeField(auto_now_add=True)
+
+    # Attribution fields (copied from booking for offline matching)
+    utm_source = models.CharField(max_length=500, blank=True, null=True)
+    utm_campaign = models.CharField(max_length=500, blank=True, null=True)
+    gclid = models.CharField(max_length=500, blank=True, null=True)
+    fbclid = models.CharField(max_length=500, blank=True, null=True)
+    ttclid = models.CharField(max_length=500, blank=True, null=True)
+    sc_click_id = models.CharField(max_length=500, blank=True, null=True)
+
+    # Raw payload for debugging/re-sending
+    payload = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Prevents duplicate conversions for the same booking+event
+        unique_together = [("booking", "event_name")]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.event_name} — Booking #{self.booking_id}"
 
 
 # ─── Notifications ─────────────────────────────────────────────────────────

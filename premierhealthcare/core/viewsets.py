@@ -14,6 +14,7 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ class AdminModelViewSet(viewsets.ModelViewSet):
     """
     authentication_classes = [JWTAuthentication]
     permission_classes     = [IsAdminUser]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends        = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     search_fields:   list[str] = []
     ordering_fields: list[str] = "__all__"
     ordering:        list[str] = ["-id"]

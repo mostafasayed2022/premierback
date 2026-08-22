@@ -31,6 +31,9 @@ class FileListUploadView(APIView):
 
     def get(self, request):
         files = get_user_files(request.user)
+        search_query = request.query_params.get("search") or request.query_params.get("q")
+        if search_query:
+            files = files.filter(original_name__icontains=search_query)
         serializer = FileSerializer(files, many=True, context={"request": request})
         return Response(serializer.data)
 

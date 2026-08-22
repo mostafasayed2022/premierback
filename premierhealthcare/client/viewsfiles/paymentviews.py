@@ -15,6 +15,34 @@ from django.http import HttpResponseRedirect
 
 
 
+from client.models import OfflineConversion
+
+
+def handle_successful_payment(booking, transaction_id=None):
+    """Create idempotent purchase OfflineConversion."""
+    def create_purchase_conversion():
+        OfflineConversion.objects.get_or_create(
+            booking=booking,
+            event_name=OfflineConversion.EventName.PURCHASE,
+            defaults={
+                "value": booking.fee,
+                "currency": "EGP",
+                "utm_source": booking.utm_source,
+                "utm_campaign": booking.utm_campaign,
+                "gclid": booking.gclid,
+                "fbclid": booking.fbclid,
+                "ttclid": booking.ttclid,
+                "sc_click_id": booking.sc_click_id,
+                "payload": {
+                    "booking_id": str(booking.pk),
+                    "transaction_id": transaction_id or getattr(booking, "payment_transaction_id", None),
+                    "service_id": getattr(booking.service, "id", None),
+                },
+            },
+        )
+    transaction.on_commit(create_purchase_conversion)
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class PaymobWebhookView(APIView):
     permission_classes = [AllowAny]
@@ -51,19 +79,20 @@ class PaymobWebhookView(APIView):
         payment.raw_webhook_payload = request.data
         payment.paymob_transaction_id = transaction_id
 
-        if success :
+        if success:
             payment.status = PaymentStatus.PAID
             payment.paid_at = timezone.now()
             booking.status = BookingStatus.CONFIRMED
             payment.save()
             booking.save()
-            
+            handle_successful_payment(booking, transaction_id=transaction_id)
+
         elif not success and not pending:
             payment.status = PaymentStatus.FAILED
             booking.status = BookingStatus.CANCELLED
             payment.save()
             booking.save()
-            
+
         else:
             payment.save()
 

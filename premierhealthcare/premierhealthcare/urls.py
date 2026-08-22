@@ -114,6 +114,19 @@ class BookingAdminViewSet(AdminModelViewSet):
     queryset = Booking.objects.select_related(
         "patient__user", "doctor__user", "service", "branch"
     ).order_by("-date")
+    search_fields = [
+        "patient__user__first_name",
+        "patient__user__last_name",
+        "patient__user__username",
+        "patient__phone_number",
+        "doctor__user__first_name",
+        "doctor__user__last_name",
+        "doctor__user__username",
+        "service__name",
+        "branch__name",
+        "status",
+    ]
+    filterset_fields = ["status", "date", "doctor", "service", "branch"]
 
     def get_serializer_class(self):
         return BookingSerializer if self.request.method == "GET" else BookingCreateSerializer

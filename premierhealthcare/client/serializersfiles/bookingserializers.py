@@ -6,10 +6,49 @@ from rest_framework import serializers
 from django.db import IntegrityError, transaction
 
 
+# Whitelist of allowed attribution fields
+ATTRIBUTION_ALLOWED_FIELDS = {
+    "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
+    "campaign_id", "adset_id", "ad_id",
+    "gclid", "gbraid", "wbraid",
+    "fbclid", "ttclid", "sc_click_id",
+    "landing_page", "referrer",
+}
+
+
+class AttributionSerializer(serializers.Serializer):
+    """
+    Strict whitelist serializer for campaign attribution data.
+    Only accepts approved fields. Rejects unknown keys silently.
+    Zero-PII: never accepts name, email, phone, or medical data.
+    """
+    utm_source = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    utm_medium = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    utm_campaign = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    utm_content = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    utm_term = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    campaign_id = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    adset_id = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    ad_id = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    gclid = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    gbraid = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    wbraid = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    fbclid = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    ttclid = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    sc_click_id = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    landing_page = serializers.CharField(max_length=2000, required=False, allow_blank=True, allow_null=True)
+    referrer = serializers.CharField(max_length=2000, required=False, allow_blank=True, allow_null=True)
+
+
 class BookingCreateSerializer(serializers.ModelSerializer):
+    attribution = AttributionSerializer(required=False, write_only=True)
+
     class Meta:
         model = Booking
-        fields = ["doctor", "service", "branch", "date", "start_time", "end_time", "fee", "status"]
+        fields = [
+            "doctor", "service", "branch", "date", "start_time", "end_time", "fee", "status",
+            "attribution",
+        ]
         read_only_fields = ["end_time", "fee"]
 
     def validate(self, attrs):
@@ -75,13 +114,27 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        attribution = validated_data.pop("attribution", {})
         # Fee is set to service's default fee (no overrides)
-        service = validated_data["service"]
-        validated_data["fee"] = service.default_fee
+        service = validated_data.get("service")
+        if service and hasattr(service, "default_fee"):
+            validated_data["fee"] = service.default_fee
 
         try:
             with transaction.atomic():
-                return super().create(validated_data)
+                booking = super().create(validated_data)
+
+                # Save attribution fields to booking
+                if attribution:
+                    fields_to_update = []
+                    for field, value in attribution.items():
+                        if hasattr(booking, field) and value:
+                            setattr(booking, field, value)
+                            fields_to_update.append(field)
+                    if fields_to_update:
+                        booking.save(update_fields=fields_to_update)
+
+                return booking
         except IntegrityError:
             raise serializers.ValidationError(
                 {"start_time": "This slot was just booked by someone else. Please pick another."}
