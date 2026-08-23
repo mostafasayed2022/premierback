@@ -161,7 +161,7 @@ class RequestPasswordResetView(APIView):
         serializer = RequestPasswordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
-        user = CustomUser.objects.get(email=email)
+        user = CustomUser.objects.get(email__iexact=email)
         otp = PasswordResetOTP.generate_for_user(user)
         send_otp_email(user, otp.code)
         return Response({"detail": "OTP sent to your email."}, status=status.HTTP_200_OK)
@@ -175,7 +175,7 @@ class VerifyOTPView(APIView):
         email = serializer.validated_data['email']
         code = serializer.validated_data['code']
         try:
-            user = CustomUser.objects.get(email=email)
+            user = CustomUser.objects.get(email__iexact=email)
             otp = PasswordResetOTP.objects.filter(user=user, code=code, is_used=False).latest('created_at')
         except PasswordResetOTP.DoesNotExist:
             return Response({"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
@@ -193,7 +193,7 @@ class PasswordResetConfirmView(APIView):
         code = serializer.validated_data['code']
         new_password = serializer.validated_data['new_password']
         try:
-            user = CustomUser.objects.get(email=email)
+            user = CustomUser.objects.get(email__iexact=email)
             otp = PasswordResetOTP.objects.filter(user=user, code=code, is_used=False).latest('created_at')
         except PasswordResetOTP.DoesNotExist:
             return Response({"detail": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
