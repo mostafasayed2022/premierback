@@ -10,6 +10,9 @@ import React, {
 } from "react";
 import axios from "axios";
 import { savePatientToken, clearAllTokens } from "@/lib/api/auth";
+import { useRouter } from "@/i18n/routing";
+import { useLocale } from "next-intl";
+import { toast } from "sonner";
 
 interface PatientUser {
   id: number;
@@ -33,7 +36,7 @@ interface PatientAuthContextValue {
     firstName?: string;
     lastName?: string;
   }) => Promise<void>;
-  logout: () => void;
+  logout: (options?: { redirect?: boolean; message?: string } | any) => void;
 }
 
 const PatientAuthContext = createContext<PatientAuthContextValue | null>(null);
@@ -56,6 +59,8 @@ function getApiUrl(path: string): string {
 export function PatientAuthProvider({ children }: { children: ReactNode }) {
   const [patientUser, setPatientUser] = useState<PatientUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const locale = useLocale();
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -116,10 +121,38 @@ export function PatientAuthProvider({ children }: { children: ReactNode }) {
     [login],
   );
 
-  const logout = useCallback(() => {
-    clearAllTokens();
-    setPatientUser(null);
-  }, []);
+  const logout = useCallback(
+    (options?: { redirect?: boolean; message?: string } | any) => {
+      clearAllTokens();
+      setPatientUser(null);
+
+      const defaultMessages: Record<string, string> = {
+        ar: "تم تسجيل الخروج بنجاح",
+        en: "You have been logged out successfully",
+        de: "Erfolgreich abgemeldet",
+        fr: "Déconnexion réussie",
+        it: "Disconnessione riuscita",
+        es: "Has cerrado sesión correctamente",
+        ru: "Вы успешно вышли из системы",
+        tr: "Başarıyla çıkış yapıldı",
+      };
+
+      const isEvent =
+        options &&
+        (typeof options.preventDefault === "function" ||
+          options.nativeEvent !== undefined);
+      const opts = isEvent ? undefined : options;
+
+      const msg =
+        opts?.message || defaultMessages[locale] || defaultMessages.ar;
+      toast.success(msg);
+
+      if (opts?.redirect !== false) {
+        router.push("/");
+      }
+    },
+    [locale, router],
+  );
 
   return (
     <PatientAuthContext.Provider

@@ -2,7 +2,7 @@
 
 // ─── GccDoctors.tsx ───────────────────────────────────────────────────────────
 // Real Verified Medical Team for GCC Landing Page with WhatsApp, Call & Booking
-// Real Doctors: Dr. Bassant & Dr. Rama
+// Dynamically synchronizes with Backend / Admin Doctors while retaining rich curated defaults.
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
@@ -25,7 +25,7 @@ import { getDoctors, Doctor } from "@/lib/api";
 const PAGE_PATH = "/gcc/iv-theropy/ar";
 
 interface VerifiedDoctor {
-  id: number;
+  id: number | string;
   name_ar: string;
   name_en: string;
   title_ar: string;
@@ -72,29 +72,121 @@ export function GccDoctors() {
   const [doctors, setDoctors] = useState<VerifiedDoctor[]>(REAL_VERIFIED_DOCTORS);
 
   useEffect(() => {
+    let isMounted = true;
+
     getDoctors()
-      .then((apiDocs) => {
-        if (apiDocs && apiDocs.length > 0) {
-          const merged = REAL_VERIFIED_DOCTORS.map((curated) => {
-            const match = apiDocs.find((d) => String(d.id) === String(curated.id));
-            if (!match) return curated;
+      .then((apiDocs: Doctor[]) => {
+        if (!isMounted || !apiDocs || apiDocs.length === 0) return;
+
+        // Map every doctor returned from the backend/API
+        const mappedList: VerifiedDoctor[] = apiDocs.map((apiDoc) => {
+          // Check if this doctor matches any of our curated profiles
+          const curated = REAL_VERIFIED_DOCTORS.find(
+            (c) =>
+              String(c.id) === String(apiDoc.id) ||
+              (apiDoc.name &&
+                c.name_en.toLowerCase().includes(apiDoc.name.toLowerCase())) ||
+              (apiDoc.name_ar && c.name_ar.includes(apiDoc.name_ar))
+          );
+
+          if (curated) {
             return {
               ...curated,
-              image_url: match.photo || match.image_url || curated.image_url,
-              experience_years: match.experience || curated.experience_years,
-              patients_count: match.patients || curated.patients_count,
+              id: apiDoc.id,
+              name_ar: apiDoc.name_ar || curated.name_ar,
+              name_en: apiDoc.name || curated.name_en,
+              title_ar: apiDoc.position_ar || curated.title_ar,
+              specialty_ar: apiDoc.specialty_ar || curated.specialty_ar,
+              bio_ar: apiDoc.bio_ar || curated.bio_ar,
+              image_url:
+                apiDoc.photo ||
+                (apiDoc as any).image_url ||
+                curated.image_url,
+              experience_years:
+                apiDoc.experience || curated.experience_years,
+              patients_count: apiDoc.patients || curated.patients_count,
             };
-          });
-          setDoctors(merged);
-        }
+          }
+
+          // Format newly added doctor from backend / admin
+          const rawName = apiDoc.name_ar || apiDoc.name || "استشاري طبي";
+          const formattedNameAr = rawName.startsWith("د.")
+            ? rawName
+            : `د. ${rawName.replace(/^Dr\.?\s*/i, "")}`;
+
+          const expYears = apiDoc.experience || 10;
+          const specialty =
+            apiDoc.specialty_ar ||
+            apiDoc.specialty ||
+            "العلاجات الوريدية والطب التجديدي";
+          const title =
+            apiDoc.position_ar ||
+            apiDoc.position ||
+            "استشاري الرعاية والبروتوكولات العلاجية";
+          const bio =
+            apiDoc.bio_ar ||
+            apiDoc.bio ||
+            "استشاري متخصص معتمد يقدم رعاية طبية فائقة وبروتوكولات علاجية مخصصة بأعلى معايير الجودة العالمية.";
+          const photo =
+            apiDoc.photo ||
+            (apiDoc as any).image_url ||
+            "/hero/hero1.webp";
+
+          return {
+            id: apiDoc.id,
+            name_ar: formattedNameAr,
+            name_en: apiDoc.name || "",
+            title_ar: title,
+            specialty_ar: specialty,
+            experience_years: expYears,
+            patients_count: apiDoc.patients || 300,
+            bio_ar: bio,
+            image_url: photo,
+            badges_ar: [
+              "إشراف طبي مباشر",
+              `${expYears}+ سنوات خبرة`,
+              specialty.length > 25 ? "بروتوكولات متطورة" : specialty,
+            ],
+          };
+        });
+
+        // Retain curated real doctors if not present in the API response
+        const missingCurated = REAL_VERIFIED_DOCTORS.filter(
+          (curated) =>
+            !mappedList.some(
+              (m) =>
+                String(m.id) === String(curated.id) ||
+                (m.name_en &&
+                  curated.name_en
+                    .toLowerCase()
+                    .includes(m.name_en.toLowerCase()))
+            )
+        );
+
+        setDoctors([...mappedList, ...missingCurated]);
       })
       .catch(() => {
         // Fallback to verified real doctors
       });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  // Determine optimal responsive grid layout based on number of doctors
+  const gridClasses =
+    doctors.length === 1
+      ? "grid grid-cols-1 max-w-xl mx-auto gap-8"
+      : doctors.length === 2
+      ? "grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto gap-8"
+      : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto gap-8";
+
   return (
-    <section className="py-20 bg-[#0a1b2a] text-white relative overflow-hidden" id="gcc-doctors">
+    <section
+      className="py-20 bg-[#0a1b2a] text-white relative overflow-hidden"
+      id="gcc-doctors"
+    >
       {/* Background Lighting */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-amber-400/5 rounded-full blur-[140px] pointer-events-none" />
 
@@ -114,7 +206,7 @@ export function GccDoctors() {
         </div>
 
         {/* Doctors Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className={gridClasses}>
           {doctors.map((doc) => (
             <div
               key={doc.id}
@@ -152,7 +244,7 @@ export function GccDoctors() {
                 </div>
 
                 {/* Bio */}
-                <p className="text-white/75 text-xs sm:text-sm leading-relaxed mb-6 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                <p className="text-white/75 text-xs sm:text-sm leading-relaxed mb-6 bg-white/[0.02] p-4 rounded-2xl border border-white/5 line-clamp-4 group-hover:line-clamp-none transition-all">
                   {doc.bio_ar}
                 </p>
 
@@ -174,7 +266,7 @@ export function GccDoctors() {
               <div className="space-y-2.5 pt-2">
                 {/* Primary Booking Button */}
                 <Link
-                  href="/ar/book-appointment"
+                  href={`/ar/book-appointment?doctor=${doc.id}`}
                   onClick={() =>
                     trackStartBooking({
                       service_name: `استشارة مع ${doc.name_ar}`,

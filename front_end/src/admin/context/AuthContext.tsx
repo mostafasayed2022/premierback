@@ -15,6 +15,8 @@ import React, {
 import { authApi, type LoginResponse } from "../api/admin";
 import { tokenStorage } from "../api/client";
 import { saveAdminToken, clearAllTokens } from "@/lib/api/auth";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface AuthUser {
   id: number;
@@ -39,6 +41,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   // On mount: restore session from token presence
   useEffect(() => {
@@ -77,7 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authApi.logout();
     setUser(null);
     clearAllTokens();
-  }, []);
+    toast.success("تم تسجيل الخروج بنجاح");
+    router.push("/admin/login");
+  }, [router]);
 
   return (
     <AuthContext.Provider

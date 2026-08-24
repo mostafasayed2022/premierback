@@ -10,6 +10,7 @@ import {
 import { GTMProvider } from "@/components/analytics/GTMProvider";
 import { StickyMobileCTA } from "@/components/layout/StickyMobileCTA";
 import { FloatingWhatsAppCTA } from "@/components/layout/FloatingWhatsAppCTA";
+import { GccFloatingHomeButton } from "@/components/gcc/GccFloatingHomeButton";
 import type { Metadata } from "next";
 
 const cairo = Cairo({
@@ -96,6 +97,8 @@ export default function GccLayout({ children }: { children: ReactNode }) {
         <GoogleTagManagerNoScript />
         {/* Attribution capture — no UI rendered */}
         <GTMProvider />
+        {/* Floating Side Button to return to Homepage */}
+        <GccFloatingHomeButton />
         {children}
         {/* Floating WhatsApp CTA */}
         <FloatingWhatsAppCTA />
