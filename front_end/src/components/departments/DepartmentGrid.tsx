@@ -4,13 +4,77 @@ import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
 import { Link } from "@/i18n/routing";
 import { ArrowRight, Users, Loader2 } from "lucide-react";
-import { useDepartments } from "@/lib/api";
+import { useDepartments, useDoctors, Department } from "@/lib/api";
 import { getOptimizedImageUrl } from "@/lib/utils/image";
 import Image from "next/image";
 
 export function DepartmentGrid() {
   const t = useTranslations();
   const { data: departments, isLoading } = useDepartments();
+  const { data: allDoctors = [] } = useDoctors();
+
+  const getDeptDoctorsCount = (dept: Department) => {
+    if (allDoctors.length > 0) {
+      const slug = (dept.slug || "").toLowerCase();
+      const deptId = String(dept.id);
+
+      const matching = allDoctors.filter((doc) => {
+        const docDept = String(
+          (doc as any).department ||
+            (doc as any).department_slug ||
+            (doc as any).department_id ||
+            "",
+        ).toLowerCase();
+        if (docDept && (docDept === slug || docDept === deptId)) return true;
+
+        const sp = (doc.specialty || "").toLowerCase();
+        const spAr = (doc.specialty_ar || "").toLowerCase();
+
+        if (slug === "iv-therapy" || slug === "iv_therapy") {
+          return (
+            sp.includes("iv") ||
+            sp.includes("wellness") ||
+            sp.includes("nutrition") ||
+            sp.includes("nad") ||
+            spAr.includes("وريد") ||
+            spAr.includes("تغذية")
+          );
+        }
+        if (slug === "dermatology") {
+          return (
+            sp.includes("derm") ||
+            sp.includes("skin") ||
+            spAr.includes("جلد")
+          );
+        }
+        if (slug === "aesthetics") {
+          return (
+            sp.includes("aesthetic") ||
+            sp.includes("laser") ||
+            sp.includes("cosmetic") ||
+            sp.includes("derm") ||
+            spAr.includes("تجميل") ||
+            spAr.includes("ليزر") ||
+            spAr.includes("جلد")
+          );
+        }
+        if (slug === "body-contouring" || slug === "body_contouring") {
+          return (
+            sp.includes("body") ||
+            sp.includes("sculpt") ||
+            sp.includes("contour") ||
+            spAr.includes("قوام") ||
+            spAr.includes("نحت")
+          );
+        }
+        return false;
+      });
+
+      if (matching.length > 0) return matching.length;
+    }
+
+    return dept.doctorsCount || (allDoctors.length > 0 ? allDoctors.length : 6);
+  };
 
   if (isLoading) {
     return (
@@ -61,7 +125,7 @@ export function DepartmentGrid() {
                     <Users size={14} className="text-accent" />
                     <span className="text-xs text-white font-medium">
                       {t("Departments.doctorsCount", {
-                        count: dept.doctorsCount || 0,
+                        count: getDeptDoctorsCount(dept),
                       })}
                     </span>
                   </div>

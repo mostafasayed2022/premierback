@@ -10,7 +10,7 @@ import type {
   Branch,
   Appointment,
 } from "@/lib/types";
-// removed mock data imports
+import { MOCK_DEPARTMENTS } from "@/lib/mockData";
 import { mapBookingStatus, mapPaymentStatus } from "@/lib/utils/bookingStatus";
 import { getOptimizedImageUrl } from "@/lib/utils/image";
 
@@ -102,16 +102,24 @@ interface ApiBooking {
 // ─── Department Merge ─────────────────────────────────────────────────────────
 
 export function mergeDept(d: ApiDepartment): Department {
+  const fallbackMock = MOCK_DEPARTMENTS.find(
+    (m) => m.slug === d.slug || String(m.id) === String(d.id),
+  );
+  const rawCount =
+    (d as any).doctors_count ??
+    (d as any).doctorsCount ??
+    (Array.isArray((d as any).doctors) ? (d as any).doctors.length : undefined);
+
   return {
     ...d,
     id: String(d.id),
     name_ar: d.name_ar || d.name,
     description_ar: d.description_ar || d.description,
     photo: getOptimizedImageUrl(
-      d.image_url || "/Departments/iv_theapy.webp",
+      d.image_url || fallbackMock?.photo || "/Departments/iv_theapy.webp",
       800,
     ),
-    doctorsCount: 0,
+    doctorsCount: rawCount ?? fallbackMock?.doctorsCount ?? 4,
   } as Department;
 }
 
