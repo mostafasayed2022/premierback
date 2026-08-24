@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Stethoscope } from "lucide-react";
 import Image from "next/image";
 import type { Department } from "@/lib/types";
+import { useDoctors } from "@/lib/api";
 
 interface BranchSpecialtiesSectionProps {
   departments: Department[];
@@ -20,6 +21,111 @@ export function BranchSpecialtiesSection({
   const t = useTranslations("Branches");
   const locale = useLocale();
   const isAr = locale === "ar";
+  const { data: allDoctors = [] } = useDoctors();
+
+  const getDeptDoctorsCount = (dept: Department): number => {
+    if (allDoctors && allDoctors.length > 0) {
+      const slug = (dept.slug || "").toLowerCase().trim();
+      const deptId = String(dept.id || "").trim();
+      const deptName = (dept.name || "").toLowerCase().trim();
+      const deptNameAr = (dept.name_ar || "").trim();
+
+      const matching = allDoctors.filter((doc) => {
+        const docDept = String(
+          (doc as any).department ||
+            (doc as any).department_slug ||
+            (doc as any).department_id ||
+            (doc as any).department_name ||
+            "",
+        ).toLowerCase().trim();
+
+        if (
+          docDept &&
+          (docDept === slug ||
+            docDept === deptId ||
+            docDept === deptName ||
+            (deptName && docDept.includes(deptName)) ||
+            (slug && docDept.includes(slug)))
+        ) {
+          return true;
+        }
+
+        const sp = (
+          (doc.specialty || "") +
+          " " +
+          (doc.position || "") +
+          " " +
+          (doc.bio || "")
+        ).toLowerCase();
+        const spAr =
+          (doc.specialty_ar || "") +
+          " " +
+          (doc.position_ar || "") +
+          " " +
+          (doc.bio_ar || "");
+
+        if (deptName && sp.includes(deptName)) return true;
+        if (deptNameAr && spAr.includes(deptNameAr)) return true;
+
+        if (slug === "iv-therapy" || slug === "iv_therapy" || slug.includes("iv")) {
+          return (
+            sp.includes("iv") ||
+            sp.includes("wellness") ||
+            sp.includes("nutrition") ||
+            sp.includes("nad") ||
+            sp.includes("drip") ||
+            spAr.includes("وريد") ||
+            spAr.includes("تغذية") ||
+            spAr.includes("تقطير")
+          );
+        }
+        if (slug === "dermatology" || slug.includes("derm")) {
+          return (
+            sp.includes("derm") ||
+            sp.includes("skin") ||
+            spAr.includes("جلد") ||
+            spAr.includes("بشرة")
+          );
+        }
+        if (slug === "aesthetics" || slug.includes("aesthetic")) {
+          return (
+            sp.includes("aesthetic") ||
+            sp.includes("laser") ||
+            sp.includes("cosmetic") ||
+            sp.includes("filler") ||
+            sp.includes("botox") ||
+            sp.includes("derm") ||
+            spAr.includes("تجميل") ||
+            spAr.includes("ليزر") ||
+            spAr.includes("فيلر") ||
+            spAr.includes("بوتوكس") ||
+            spAr.includes("جلد")
+          );
+        }
+        if (
+          slug === "body-contouring" ||
+          slug === "body_contouring" ||
+          slug.includes("body") ||
+          slug.includes("contour")
+        ) {
+          return (
+            sp.includes("body") ||
+            sp.includes("sculpt") ||
+            sp.includes("contour") ||
+            sp.includes("slimming") ||
+            spAr.includes("قوام") ||
+            spAr.includes("نحت") ||
+            spAr.includes("تنسيق")
+          );
+        }
+        return false;
+      });
+
+      return matching.length;
+    }
+
+    return (dept as any).doctors_count ?? (dept as any).doctorsCount ?? 0;
+  };
 
   const departmentSpecialties = departments.slice(0, 4);
 
@@ -85,9 +191,9 @@ export function BranchSpecialtiesSection({
                     <span className="p-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-[#C8A96B]">
                       <Stethoscope size={18} />
                     </span>
-                    {dept.doctorsCount > 0 && (
+                    {getDeptDoctorsCount(dept) > 0 && (
                       <span className="text-[10px] font-bold text-white/80 uppercase bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                        {dept.doctorsCount} {t("specialistsCount")}
+                        {getDeptDoctorsCount(dept)} {t("specialistsCount")}
                       </span>
                     )}
                   </div>

@@ -108,7 +108,7 @@ export function mergeDept(d: ApiDepartment): Department {
   const rawCount =
     (d as any).doctors_count ??
     (d as any).doctorsCount ??
-    (Array.isArray((d as any).doctors) ? (d as any).doctors.length : undefined);
+    (Array.isArray((d as any).doctors) ? (d as any).doctors.length : 0);
 
   return {
     ...d,
@@ -119,7 +119,7 @@ export function mergeDept(d: ApiDepartment): Department {
       d.image_url || fallbackMock?.photo || "/Departments/iv_theapy.webp",
       800,
     ),
-    doctorsCount: rawCount ?? fallbackMock?.doctorsCount ?? 4,
+    doctorsCount: rawCount,
   } as Department;
 }
 
