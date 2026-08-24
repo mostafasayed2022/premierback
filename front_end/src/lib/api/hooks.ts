@@ -705,7 +705,10 @@ export function useUpdatePatientProfile(
       queryClient.setQueryData(queryKeys.patientProfile.me, data);
       queryClient.invalidateQueries({ queryKey: queryKeys.patientProfile.me });
       import("sonner").then(({ toast }) => {
-        if (variables?.imageId !== undefined || variables?.avatar !== undefined) {
+        if (
+          variables?.imageId !== undefined ||
+          variables?.avatar !== undefined
+        ) {
           toast.success("Patient profile picture updated successfully!");
         }
       });
@@ -759,7 +762,10 @@ export function useUpdateDoctorProfile(
       queryClient.setQueryData(queryKeys.doctorProfile.me, data);
       queryClient.invalidateQueries({ queryKey: queryKeys.doctorProfile.me });
       import("sonner").then(({ toast }) => {
-        if (variables?.imageId !== undefined || variables?.photo !== undefined) {
+        if (
+          variables?.imageId !== undefined ||
+          variables?.photo !== undefined
+        ) {
           toast.success("Doctor profile picture updated successfully!");
         } else if (variables?.availability !== undefined) {
           toast.success("Profile schedule saved successfully!");

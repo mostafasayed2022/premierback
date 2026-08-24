@@ -45,27 +45,7 @@ const getToken = (): string | null => {
   );
 };
 
-const getErrorMessage = (err: unknown): string => {
-  if (axios.isAxiosError(err)) {
-    // Django DRF often returns detail in response.data
-    if (err.response?.data?.detail) {
-      return err.response.data.detail;
-    }
-    // Some endpoints use message or error
-    if (err.response?.data?.message) {
-      return err.response.data.message;
-    }
-    if (err.response?.data?.error) {
-      return err.response.data.error;
-    }
-    // Fallback to axios message
-    return err.message;
-  }
-  if (err instanceof Error) {
-    return err.message;
-  }
-  return "An unknown error occurred";
-};
+import { getErrorMessage } from "@/lib/utils/error";
 
 const mapFiles = (apiFiles: FileUpload[]): AdminFile[] => {
   return apiFiles.map((f) => ({

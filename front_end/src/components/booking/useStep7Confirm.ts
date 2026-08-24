@@ -20,14 +20,21 @@ interface UseStep7ConfirmProps {
   onPhoneChange: (v: string) => void;
 }
 
-export function useStep7Confirm({ booking, onEmailChange, onPhoneChange }: UseStep7ConfirmProps) {
+export function useStep7Confirm({
+  booking,
+  onEmailChange,
+  onPhoneChange,
+}: UseStep7ConfirmProps) {
   const t = useTranslations("Booking");
   const tAuth = useTranslations("Auth");
 
-  const { patientUser, isAuthenticated, login, register, logout } = usePatientAuth();
-  
+  const { patientUser, isAuthenticated, login, register, logout } =
+    usePatientAuth();
+
   // Auth view mode: "guest" | "login" | "register"
-  const [authMode, setAuthMode] = useState<"guest" | "login" | "register">("guest");
+  const [authMode, setAuthMode] = useState<"guest" | "login" | "register">(
+    "guest",
+  );
 
   // Form states
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
@@ -61,9 +68,11 @@ export function useStep7Confirm({ booking, onEmailChange, onPhoneChange }: UseSt
       });
     }
     if (booking.branch) {
-      getDoctorsByBranch(Number(booking.branch), Number(booking.service)).then((data) => {
-        if (data && data.length > 0) setDoctors(data);
-      });
+      getDoctorsByBranch(Number(booking.branch), Number(booking.service)).then(
+        (data) => {
+          if (data && data.length > 0) setDoctors(data);
+        },
+      );
     }
   }, [booking.department, booking.service, booking.branch]);
 
@@ -72,7 +81,7 @@ export function useStep7Confirm({ booking, onEmailChange, onPhoneChange }: UseSt
       onEmailChange(patientUser.email ?? "");
       onPhoneChange(patientUser.phone_number ?? "");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, patientUser]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -103,26 +112,36 @@ export function useStep7Confirm({ booking, onEmailChange, onPhoneChange }: UseSt
       toast.success(tAuth("registerSuccess"));
       setAuthMode("guest");
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || err.message || "Registration failed.");
+      toast.error(
+        err.response?.data?.detail || err.message || "Registration failed.",
+      );
     } finally {
       setAuthLoading(false);
     }
   };
 
   const dept = departments.find(
-    (d) => String(d.id) === String(booking.department) || d.slug === String(booking.department)
+    (d) =>
+      String(d.id) === String(booking.department) ||
+      d.slug === String(booking.department),
   );
 
   const svc = services.find(
-    (s) => String(s.id) === String(booking.service) || s.slug === String(booking.service)
+    (s) =>
+      String(s.id) === String(booking.service) ||
+      s.slug === String(booking.service),
   );
 
   const branch = branches.find(
-    (b) => String(b.id) === String(booking.branch) || b.name === String(booking.branch)
+    (b) =>
+      String(b.id) === String(booking.branch) ||
+      b.name === String(booking.branch),
   );
 
   const doc = doctors.find(
-    (d) => String(d.id) === String(booking.doctor) || d.slug === String(booking.doctor)
+    (d) =>
+      String(d.id) === String(booking.doctor) ||
+      d.slug === String(booking.doctor),
   );
 
   const getPaymentLabel = (method: string) => {

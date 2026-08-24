@@ -4,6 +4,7 @@ import { BookingData } from "./types";
 import { createBooking, getBookingStatus } from "@/lib/api";
 import { toast } from "sonner";
 import type { AxiosError } from "axios";
+import { getErrorMessage } from "@/lib/utils/error";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   trackStartBooking,
@@ -69,21 +70,10 @@ export function useBookingState() {
     },
     onError: (error: AxiosError | Error | unknown) => {
       // NOTE: booking_complete is deliberately NOT fired here
-      const err = error as AxiosError | undefined;
-      const errorData = (err && err.response && err.response.data) || undefined;
-      const firstFieldError = Array.isArray(Object.values(errorData || {})[0])
-        ? (Object.values(errorData || {})[0] as unknown[])[0]
-        : undefined;
-
-      const errMsg =
-        (errorData as any)?.detail ||
-        (errorData as any)?.non_field_errors?.[0] ||
-        firstFieldError ||
-        (error instanceof Error ? error.message : undefined) ||
-        t("bookingFailed");
-
+      const errMsg = getErrorMessage(error, t("bookingFailed"));
       toast.error(errMsg);
 
+      const err = error as AxiosError | undefined;
       if ((err && err.response && err.response.status) === 409) {
         toast.error(t("slotJustBooked"));
         setStep(5);

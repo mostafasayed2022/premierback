@@ -11,6 +11,8 @@ import axios from "axios";
 import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
 import { ZodError } from "zod";
 
+import { getErrorMessage } from "@/lib/utils/error";
+
 export function usePatientRegister() {
   const t = useTranslations("Auth");
   const locale = useLocale();
@@ -55,33 +57,6 @@ export function usePatientRegister() {
     },
     [],
   );
-
-  // ── Get server error message safely ────────────────────────
-  const getErrorMessage = useCallback((err: unknown): string => {
-    if (axios.isAxiosError(err)) {
-      // Handle Django REST Framework field errors
-      const data = err.response?.data;
-      if (data) {
-        // Try common DRF error formats
-        return (
-          data.detail ||
-          data.message ||
-          data.error ||
-          data.email?.[0] ||
-          data.password?.[0] ||
-          data.phone?.[0] ||
-          data.firstName?.[0] ||
-          data.lastName?.[0] ||
-          err.message
-        );
-      }
-      return err.message;
-    }
-    if (err instanceof Error) {
-      return err.message;
-    }
-    return "Registration failed. Please try again.";
-  }, []);
 
   // ── Handle registration ────────────────────────────────────
   const handleRegister = useCallback(
@@ -128,14 +103,32 @@ export function usePatientRegister() {
         toast.success(t("registerSuccess") || "Account created successfully!");
         router.push(`/login?redirect=${encodeURIComponent(redirectTo)}`);
       } catch (err: unknown) {
-        const message = getErrorMessage(err);
+        if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === "object") {
+          const data = err.response.data as Record<string, any>;
+          const fieldErrors: Partial<Record<keyof RegisterFormData, string>> = {};
+          if (data.email) fieldErrors.email = Array.isArray(data.email) ? data.email[0] : data.email;
+          if (data.phone || data.phoneNumber) fieldErrors.phone = Array.isArray(data.phone) ? data.phone[0] : data.phone || data.phoneNumber;
+          if (data.password) fieldErrors.password = Array.isArray(data.password) ? data.password[0] : data.password;
+          if (data.firstName) fieldErrors.firstName = Array.isArray(data.firstName) ? data.firstName[0] : data.firstName;
+          if (data.lastName) fieldErrors.lastName = Array.isArray(data.lastName) ? data.lastName[0] : data.lastName;
+          if (Object.keys(fieldErrors).length > 0) {
+            setErrors(fieldErrors);
+          }
+        }
+
+        const message = getErrorMessage(
+          err,
+          isAr
+            ? "تعذر إنشاء الحساب، يرجى المحاولة مرة أخرى."
+            : "Registration failed. Please try again.",
+        );
         setFormError(message);
         toast.error(message);
       } finally {
         setLoading(false);
       }
     },
-    [registerForm, register, router, t, getErrorMessage],
+    [registerForm, register, router, t, isAr, redirectTo],
   );
 
   return {

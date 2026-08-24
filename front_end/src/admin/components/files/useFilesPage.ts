@@ -83,15 +83,7 @@ const getToken = (): string | null => {
   );
 };
 
-const getErrorMessage = (err: unknown): string => {
-  if (axios.isAxiosError(err)) {
-    return err.response?.data?.detail || err.message;
-  }
-  if (err instanceof Error) {
-    return err.message;
-  }
-  return "Unknown error";
-};
+import { getErrorMessage } from "@/lib/utils/error";
 
 // ─── Hook ───────────────────────────────────────────────────────
 
