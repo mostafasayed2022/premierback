@@ -24,6 +24,7 @@ import {
 import { GTMProvider } from "@/components/analytics/GTMProvider";
 import { StickyMobileCTA } from "@/components/layout/StickyMobileCTA";
 import { FloatingWhatsAppCTA } from "@/components/layout/FloatingWhatsAppCTA";
+import { BackToTop } from "@/components/common/BackToTop";
 
 const arapey = Arapey({
   subsets: ["latin"],
@@ -127,6 +128,8 @@ export default async function LocaleLayout({ children, params }: Props) {
                 <FloatingWhatsAppCTA />
                 {/* Global mobile sticky CTA — mounted once, hidden on desktop */}
                 <StickyMobileCTA />
+                {/* Global back-to-top — appears after 450px scroll */}
+                <BackToTop />
               </PatientAuthProvider>
             </NextIntlClientProvider>
           </HydrationBoundary>
