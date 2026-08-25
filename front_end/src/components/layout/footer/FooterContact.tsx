@@ -114,26 +114,57 @@ export function FooterContact() {
           </div>
         </div>
 
-        {/* Phone numbers */}
+        {/* Phone numbers — per branch cards */}
         <div className="flex flex-col gap-2 pt-1 border-t border-white/10">
-          <div className="flex items-start gap-2.5">
-            <Phone size={15} className="text-accent shrink-0 mt-0.5" />
-            <div className="flex flex-col gap-1 text-[11px]">
-              <a href="tel:+201111977705" className="hover:text-accent transition-colors">
-                <span className="text-white/60">فيرمونت نايل سيتي: </span>
-                <span dir="ltr" className="font-bold text-white">+20 11 11977705</span>
+          <div className="flex items-center gap-2 mb-1">
+            <Phone size={13} className="text-accent shrink-0" />
+            <span className="text-[10px] uppercase tracking-widest text-white/40 font-bold">
+              {t("Contact.locations")}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {[
+              {
+                label: t("Contact.branchFairmont") || "Fairmont Nile City",
+                tel: "+201200644663",
+                display: "+20 11 1197 7705",
+                color: "bg-amber-400",
+              },
+              {
+                label: t("Contact.branchArkan") || "Arkan Plaza (Sheikh Zayed)",
+                tel: "+201111977713",
+                display: "+20 11 1197 7713",
+                color: "bg-emerald-400",
+              },
+              {
+                label: t("Contact.branchSodic") || "EDNC Sodic (New Cairo)",
+                tel: "+201111977712",
+                display: "+20 11 1197 7712",
+                color: "bg-sky-400",
+              },
+            ].map(({ label, tel, display, color }) => (
+              <a
+                key={tel}
+                href={`tel:${tel}`}
+                className="group flex items-center justify-between gap-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-accent/30 px-3 py-2 transition-all duration-200"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${color}`} />
+                  <span className="text-[10px] text-white/60 group-hover:text-white/80 truncate transition-colors leading-tight">
+                    {label}
+                  </span>
+                </div>
+                <span
+                  dir="ltr"
+                  className="text-[11px] font-bold text-white group-hover:text-accent transition-colors shrink-0 tabular-nums"
+                >
+                  {display}
+                </span>
               </a>
-              <a href="tel:+201111977713" className="hover:text-accent transition-colors">
-                <span className="text-white/60">أركان بلازا (الشيخ زايد): </span>
-                <span dir="ltr" className="font-bold text-white">+20 11 11977713</span>
-              </a>
-              <a href="tel:+201111977712" className="hover:text-accent transition-colors">
-                <span className="text-white/60">سوديك EDNC (التجمع): </span>
-                <span dir="ltr" className="font-bold text-white">+20 11 11977712</span>
-              </a>
-            </div>
+            ))}
           </div>
         </div>
+
 
         {/* Email */}
         <div className="flex items-center gap-2.5">
@@ -145,7 +176,7 @@ export function FooterContact() {
 
         {/* WhatsApp CTA */}
         <a
-          href="https://wa.me/201111977705"
+          href="https://wa.me/201200644663"
           target="_blank"
           rel="noopener noreferrer"
           className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white py-2 text-xs font-bold transition-all duration-300 shadow-md"

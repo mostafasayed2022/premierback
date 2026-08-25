@@ -22,7 +22,7 @@ import {
 } from "@/lib/analytics/events";
 import { getDoctors, Doctor } from "@/lib/api";
 
-const PAGE_PATH = "/gcc/iv-theropy/ar";
+const PAGE_PATH = "/gcc/iv-therapy/ar";
 
 interface VerifiedDoctor {
   id: number | string;

@@ -16,12 +16,12 @@ export const CONTACT = {
   phone_sodic_display: "+20 11 11977712",
 
   /** Primary Egyptian general/concierge phone number */
-  phone_eg: "+201111977705",
+  phone_eg: "+201200644663",
   /** UAE / GCC phone number */
   phone_uae: "+971501200313",
 
   /** WhatsApp — Egyptian number (international format, no +) */
-  whatsapp_eg: "201111977705",
+  whatsapp_eg: "201200644663",
   /** WhatsApp — UAE number (international format, no +) */
   whatsapp_uae: "971501200313",
 
@@ -30,14 +30,14 @@ export const CONTACT = {
   email_concierge: "info@premierhealthclinics.com",
 
   /** WhatsApp full URLs */
-  whatsapp_url_eg: "https://wa.me/201111977705",
+  whatsapp_url_eg: "https://wa.me/201200644663",
   whatsapp_url_uae: "https://wa.me/971501200313",
 
   /** Tel links */
   tel_fairmont: "tel:+201111977705",
   tel_arkan: "tel:+201111977713",
   tel_sodic: "tel:+201111977712",
-  tel_eg: "tel:+201111977705",
+  tel_eg: "tel:+201200644663",
   tel_uae: "tel:+971501200313",
 } as const;
 

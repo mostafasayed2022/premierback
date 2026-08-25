@@ -23,7 +23,7 @@ import {
 } from "@/lib/analytics/events";
 import Link from "next/link";
 
-const PAGE_PATH = "/gcc/iv-theropy/ar";
+const PAGE_PATH = "/gcc/iv-therapy/ar";
 
 interface VerifiedTestimonial {
   id: string | number;

@@ -27,5 +27,8 @@
   "sodicAddress": "EDNC Sodic, Пятый район",
   "arkanAddress": "Arkan Plaza, Sheikh Zayed",
   "dubaiAddress": "Дубай, ОАЭ",
-  "socialMedia": "Социальные сети"
+  "socialMedia": "Социальные сети",
+  "branchFairmont": "Fairmont Nile City",
+  "branchArkan": "Arkan Plaza (Шейх-Зайед)",
+  "branchSodic": "EDNC Sodic (Новый Каир)"
 }

@@ -84,7 +84,7 @@ export function ContactInfo() {
       id: "fairmont",
       name: isAr ? "فرع فيرمونت نايل سيتي" : "Premier Health Fairmont Nile City",
       phone: "+20 11 11977705",
-      phoneRaw: "+201111977705",
+      phoneRaw: "+201200644663",
       address: t("fairmontAddress") || "Fairmont Nile City, Cairo",
       mapEmbed:
         "https://maps.google.com/maps?q=30.0719202,31.2275839&z=15&output=embed",
@@ -121,7 +121,7 @@ export function ContactInfo() {
           text: isAr
             ? "فيرمونت نايل سيتي: +20 11 11977705"
             : "Fairmont Nile City: +20 11 11977705",
-          link: "tel:+201111977705",
+          link: "tel:+201200644663",
         },
         {
           text: isAr
@@ -153,7 +153,7 @@ export function ContactInfo() {
 
   const socialLinks = [
     {
-      href: "https://wa.me/201111977705",
+      href: "https://wa.me/201200644663",
       icon: WhatsappIcon,
       label: "WhatsApp",
     },

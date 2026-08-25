@@ -152,9 +152,9 @@ export const TEAM = [
 export const TIMELINE = [
   {
     year: "2018",
-    title: "Founded in Seattle",
+    title: "Founded in Cairo",
     label:
-      "Premier Care launched with a small team of 5 dedicated nurses focusing on post-surgical recovery.",
+      "Premier Health Clinics launched at Fairmont Nile City focusing on luxury wellness and clinical IV nutrition.",
   },
   {
     year: "2019",
@@ -172,6 +172,6 @@ export const TIMELINE = [
     year: "Today",
     title: "Global Standard",
     label:
-      "Managing over 50,000 active patient profiles with a network of 2,000+ certified specialists.",
+      "Managing over 250,000 active patient profiles with a network of 2,000+ certified specialists.",
   },
 ];

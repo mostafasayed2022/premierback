@@ -8,16 +8,21 @@ import { Stethoscope, Building2, Users, Sparkles } from "lucide-react";
 // Count-up timer component
 function AnimatedCount({ value }: { value: string }) {
   const numericVal = parseInt(value.replace(/[^0-9]/g, ""), 10) || 0;
-  const prefix = value.startsWith("+") ? "+" : "";
-  const [count, setCount] = useState(0);
+  // Extract suffix: "+10" → suffix "+", "250,000" → suffix ""
+  const suffix = value.includes("+") ? "+" : "";
+  // Start at the real value so it's never blank/zero on first render
+  const [count, setCount] = useState(numericVal);
+  const [animationStarted, setAnimationStarted] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-40px" });
 
   useEffect(() => {
-    if (!isInView) return;
+    if (!isInView || animationStarted) return;
+    setAnimationStarted(true);
+    setCount(0); // reset to 0 to begin count-up animation
 
     let startTime: number | null = null;
-    const duration = 2000; // 2 seconds duration
+    const duration = 2000;
 
     const step = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
@@ -35,14 +40,14 @@ function AnimatedCount({ value }: { value: string }) {
     };
 
     requestAnimationFrame(step);
-  }, [isInView, numericVal]);
+  }, [isInView, numericVal, animationStarted]);
 
   const formattedCount = count >= 1000 ? count.toLocaleString() : count;
 
   return (
     <span ref={ref}>
-      {prefix}
-      {isInView ? formattedCount : 0}
+      {formattedCount}
+      {suffix}
     </span>
   );
 }

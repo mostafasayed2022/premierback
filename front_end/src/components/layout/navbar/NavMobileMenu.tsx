@@ -127,7 +127,7 @@ export function NavMobileMenu({
 
           {/* GCC IV Therapy Link — standalone route, uses <a> not next-intl Link */}
           <a
-            href="/gcc/iv-theropy/ar"
+            href="/gcc/iv-therapy/ar"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-3 text-[13px] font-bold uppercase tracking-wider py-3 px-4 rounded-md text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
           >

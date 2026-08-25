@@ -167,7 +167,7 @@ export default function WhyChooseUsSection() {
             <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-xs font-semibold text-accent">
                 <Award className="w-4 h-4" />
-                <span>JCI Accredited Standard of Medical Excellence</span>
+                <span>International Medical Protocols &amp; Clinical Standards</span>
               </div>
               <ArrowUpRight className="w-5 h-5 text-white/40 group-hover:text-accent group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all rtl:rotate-90" />
             </div>

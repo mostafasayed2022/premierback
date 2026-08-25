@@ -74,7 +74,7 @@ export function NavTopBar({ mounted }: NavTopBarProps) {
           {/* Branch Phone Numbers */}
           <div className="flex items-center gap-3 text-[10px] xl:text-[11px]">
             <a
-              href="tel:+201111977705"
+              href="tel:+201200644663"
               className="flex items-center gap-1.5 hover:text-amber-300 transition-colors"
               title={currentLocale === "ar" ? "فرع فيرمونت نايل سيتي" : "Fairmont Nile City Branch"}
             >
@@ -122,7 +122,7 @@ export function NavTopBar({ mounted }: NavTopBarProps) {
 
           {/* GCC IV Therapy Landing Page Link */}
           <a
-            href="/gcc/iv-theropy/ar"
+            href="/gcc/iv-therapy/ar"
             className="group flex items-center gap-1.5 hover:text-white transition-colors"
             title={t("gcc")}
           >

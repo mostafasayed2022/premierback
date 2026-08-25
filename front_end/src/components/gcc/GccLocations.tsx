@@ -23,7 +23,7 @@ import {
 } from "@/lib/analytics/events";
 import { getBranches, Branch } from "@/lib/api";
 
-const PAGE_PATH = "/gcc/iv-theropy/ar";
+const PAGE_PATH = "/gcc/iv-therapy/ar";
 
 interface VerifiedBranch {
   id: string | number;

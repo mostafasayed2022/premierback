@@ -34,7 +34,7 @@ export function JsonLd({ locale }: JsonLdProps) {
           ? "الوجهة الأولى للرعاية الصحية الفاخرة، باقات العلاج والتقطير الوريدي IV Therapy، الجلدية، والتجميل في القاهرة والشيخ زايد والتجمع الخامس."
           : "Leading luxury medical & wellness clinics offering advanced IV drip therapy, dermatology, NAD+ infusions, and aesthetic medicine in Cairo, Egypt.",
         email: "info@premierhealthclinics.com",
-        telephone: "+201111977705",
+        telephone: "+201200644663",
         priceRange: "$$$",
         medicalSpecialty: [
           "Dermatology",
@@ -60,7 +60,7 @@ export function JsonLd({ locale }: JsonLdProps) {
           "https://www.tiktok.com/@premierhealthclinics",
           "https://www.snapchat.com/@premier.health?share_id=inVm7XArR_w&locale=en-GB",
           "https://linktr.ee/premierhealthclinic",
-          "https://wa.me/201111977705",
+          "https://wa.me/201200644663",
         ],
         hasOfferCatalog: {
           "@type": "OfferCatalog",
@@ -92,7 +92,7 @@ export function JsonLd({ locale }: JsonLdProps) {
           {
             "@type": "MedicalClinic",
             name: isAr ? "فرع فيرمونت نايل سيتي" : "Premier Health - Fairmont Nile City",
-            telephone: "+201111977705",
+            telephone: "+201200644663",
             address: {
               "@type": "PostalAddress",
               streetAddress: "Fairmont Nile City Hotel & Towers, Corniche El Nil",

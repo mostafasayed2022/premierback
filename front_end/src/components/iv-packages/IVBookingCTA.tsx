@@ -74,7 +74,7 @@ export function IVBookingCTA() {
 
           {/* Secondary: Direct Call */}
           <a
-            href="tel:+201111977705"
+            href="tel:+201200644663"
             onClick={handleCall}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 text-white font-bold text-base sm:text-lg px-8 py-4 rounded-2xl border border-white/20 hover:-translate-y-0.5 transition-all duration-300 backdrop-blur-sm"
           >

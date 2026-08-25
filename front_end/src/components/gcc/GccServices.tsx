@@ -69,7 +69,7 @@ const FALLBACK_SERVICES: ServiceItem[] = [
   },
 ];
 
-const PAGE_PATH = "/gcc/iv-theropy/ar";
+const PAGE_PATH = "/gcc/iv-therapy/ar";
 
 export function GccServices() {
   // Track view of the services section

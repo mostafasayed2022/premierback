@@ -446,7 +446,7 @@ export function PatientOverview({ patient }: PatientOverviewProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             {/* Phone hotline */}
             <a
-              href="tel:+201111977705"
+              href="tel:+201200644663"
               className="flex items-center gap-3 p-3 rounded-2xl bg-[#f7f2ea]/60 border border-[#e8e0d5]/60 hover:bg-[#f7f2ea] transition-all group"
             >
               <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-[#c8a96b] border border-[#e8e0d5]/80 group-hover:scale-105 transition-transform shrink-0">

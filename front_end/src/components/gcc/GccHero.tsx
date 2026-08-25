@@ -14,7 +14,7 @@ import {
 } from "@/lib/analytics/events";
 import Link from "next/link";
 
-const PAGE_PATH = "/gcc/iv-theropy/ar";
+const PAGE_PATH = "/gcc/iv-therapy/ar";
 
 export function GccHero() {
   return (
@@ -123,7 +123,7 @@ export function GccHero() {
 
           {/* Tertiary: Call */}
           <a
-            href={`tel:${CONTACT.phone_fairmont}`}
+            href={CONTACT.tel_eg}
             onClick={() =>
               trackClickCall({
                 location: PAGE_PATH,

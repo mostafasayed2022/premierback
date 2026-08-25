@@ -14,10 +14,22 @@ import {
   trackStartBooking,
 } from "@/lib/analytics/events";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
+
+const LOCALES = ["en", "ar", "fr", "de", "es", "it", "tr", "ru"] as const;
 
 export function StickyMobileCTA() {
   const pathname = usePathname();
+  const t = useTranslations("Nav");
+
+  // Extract the current locale from the URL path (e.g. /ar/services → "ar")
+  const segments = pathname.split("/").filter(Boolean);
+  const localeSegment = segments[0] as string;
+  const currentLocale = (LOCALES as readonly string[]).includes(localeSegment)
+    ? localeSegment
+    : "en";
+  const bookHref = `/${currentLocale}/book-appointment`;
 
   const handleWhatsApp = () => {
     trackClickWhatsApp({
@@ -61,7 +73,7 @@ export function StickyMobileCTA() {
       >
         <MessageCircle size={20} strokeWidth={2} />
         <span className="text-[9px] font-bold uppercase tracking-widest leading-none">
-          واتساب
+          {t("whatsapp")}
         </span>
       </a>
 
@@ -77,7 +89,7 @@ export function StickyMobileCTA() {
       >
         <Phone size={20} strokeWidth={2} />
         <span className="text-[9px] font-bold uppercase tracking-widest leading-none">
-          اتصل
+          {t("call")}
         </span>
       </a>
 
@@ -86,14 +98,14 @@ export function StickyMobileCTA() {
 
       {/* Book */}
       <Link
-        href="/book-appointment"
+        href={bookHref}
         onClick={handleBook}
         aria-label="Book appointment"
         className="flex flex-1 flex-col items-center justify-center gap-1 py-3 bg-accent text-white hover:bg-accent/90 active:bg-accent/80 transition-colors min-h-[56px] touch-manipulation"
       >
         <CalendarCheck size={20} strokeWidth={2} />
         <span className="text-[9px] font-bold uppercase tracking-widest leading-none">
-          احجز
+          {t("book")}
         </span>
       </Link>
     </div>

@@ -26,5 +26,8 @@
   "sodicAddress": "EDNC Sodic, Nouveau Caire",
   "arkanAddress": "Arkan Plaza, Sheikh Zayed",
   "dubaiAddress": "Dubaï, EAU",
-  "socialMedia": "Réseaux Sociaux"
+  "socialMedia": "Réseaux Sociaux",
+  "branchFairmont": "Fairmont Nile City",
+  "branchArkan": "Arkan Plaza (Sheikh Zayed)",
+  "branchSodic": "EDNC Sodic (Nouveau Caire)"
 }
