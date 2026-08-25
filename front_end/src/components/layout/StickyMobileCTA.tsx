@@ -5,6 +5,7 @@
 // Hidden on md+ screens (md:hidden).
 // Three actions: WhatsApp | Call | Book
 // All interactions tracked via analytics events.
+// Self-contained i18n support — works both inside & outside NextIntlClientProvider.
 
 import { MessageCircle, Phone, CalendarCheck } from "lucide-react";
 import { CONTACT } from "@/lib/config/contact";
@@ -14,21 +15,37 @@ import {
   trackStartBooking,
 } from "@/lib/analytics/events";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 const LOCALES = ["en", "ar", "fr", "de", "es", "it", "tr", "ru"] as const;
 
-export function StickyMobileCTA() {
-  const pathname = usePathname();
-  const t = useTranslations("Nav");
+const LABELS: Record<string, { whatsapp: string; call: string; book: string }> = {
+  ar: { whatsapp: "واتساب", call: "اتصل", book: "احجز" },
+  en: { whatsapp: "WhatsApp", call: "Call", book: "Book" },
+  fr: { whatsapp: "WhatsApp", call: "Appeler", book: "Réserver" },
+  de: { whatsapp: "WhatsApp", call: "Anrufen", book: "Buchen" },
+  es: { whatsapp: "WhatsApp", call: "Llamar", book: "Reservar" },
+  it: { whatsapp: "WhatsApp", call: "Chiama", book: "Prenota" },
+  ru: { whatsapp: "WhatsApp", call: "Позвонить", book: "Записаться" },
+  tr: { whatsapp: "WhatsApp", call: "Ara", book: "Rezerve" },
+};
 
-  // Extract the current locale from the URL path (e.g. /ar/services → "ar")
+export function StickyMobileCTA() {
+  const pathname = usePathname() || "";
+
+  // Extract the current locale from the URL path (e.g. /ar/services → "ar", /gcc/iv-therapy/ar → "ar")
   const segments = pathname.split("/").filter(Boolean);
-  const localeSegment = segments[0] as string;
-  const currentLocale = (LOCALES as readonly string[]).includes(localeSegment)
-    ? localeSegment
-    : "en";
+  let currentLocale = "en";
+
+  if (segments.length > 0) {
+    if ((LOCALES as readonly string[]).includes(segments[0])) {
+      currentLocale = segments[0];
+    } else if (segments.includes("ar") || pathname.endsWith("/ar")) {
+      currentLocale = "ar";
+    }
+  }
+
+  const labels = LABELS[currentLocale] || LABELS.en;
   const bookHref = `/${currentLocale}/book-appointment`;
 
   const handleWhatsApp = () => {
@@ -73,7 +90,7 @@ export function StickyMobileCTA() {
       >
         <MessageCircle size={20} strokeWidth={2} />
         <span className="text-[9px] font-bold uppercase tracking-widest leading-none">
-          {t("whatsapp")}
+          {labels.whatsapp}
         </span>
       </a>
 
@@ -89,7 +106,7 @@ export function StickyMobileCTA() {
       >
         <Phone size={20} strokeWidth={2} />
         <span className="text-[9px] font-bold uppercase tracking-widest leading-none">
-          {t("call")}
+          {labels.call}
         </span>
       </a>
 
@@ -105,7 +122,7 @@ export function StickyMobileCTA() {
       >
         <CalendarCheck size={20} strokeWidth={2} />
         <span className="text-[9px] font-bold uppercase tracking-widest leading-none">
-          {t("book")}
+          {labels.book}
         </span>
       </Link>
     </div>
