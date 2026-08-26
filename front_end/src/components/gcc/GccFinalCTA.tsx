@@ -69,22 +69,22 @@ export function GccFinalCTA() {
             واتساب
           </a>
 
-          {/* Call UAE */}
+          {/* Direct Call */}
           <a
-            href={CONTACT.tel_uae}
+            href={CONTACT.tel_eg}
             onClick={() =>
               trackClickCall({
                 location: PAGE_PATH,
                 page_path: PAGE_PATH,
                 service_name: "IV Therapy",
                 cta_position: "gcc_final_cta",
-                phone_type: "UAE",
+                phone_type: "EG",
               })
             }
             className="flex items-center gap-2.5 bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4 rounded-2xl transition-all duration-300 border border-white/20 hover:-translate-y-0.5 text-base w-full sm:w-auto justify-center"
           >
             <Phone size={20} />
-            {CONTACT.phone_uae}
+            01200644663
           </a>
         </div>
 

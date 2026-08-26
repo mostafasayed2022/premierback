@@ -117,12 +117,12 @@ export function GccLocations() {
                 b.name.toLowerCase().includes(curated.name_en.toLowerCase().split(" ")[0]),
             );
             if (!apiMatch) return curated;
-            return {
-              ...curated,
-              image_url: apiMatch.image_url || curated.image_url,
-              phone: apiMatch.phone || curated.phone,
-              address_ar: apiMatch.address_ar || apiMatch.address || curated.address_ar,
-            };
+              return {
+                ...curated,
+                image_url: apiMatch.image_url || curated.image_url,
+                phone: curated.phone,
+                address_ar: apiMatch.address_ar || apiMatch.address || curated.address_ar,
+              };
           });
           setBranches(merged);
         }
@@ -263,7 +263,7 @@ export function GccLocations() {
 
                   {/* Direct Call CTA */}
                   <a
-                    href={`tel:${loc.phone.replace(/\s+/g, "")}`}
+                    href={CONTACT.tel_eg}
                     onClick={() =>
                       trackClickCall({
                         location: PAGE_PATH,
