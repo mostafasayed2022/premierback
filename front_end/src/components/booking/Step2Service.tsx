@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import { Check, Clock, Sparkles } from "lucide-react";
 import Image from "next/image";
+import { trackViewService } from "@/lib/analytics/events";
 
 interface Step2ServiceProps {
   deptId: string;
@@ -69,7 +70,14 @@ export function Step2Service({
           <button
             key={svc.id}
             type="button"
-            onClick={() => onSelect(svc.id)}
+            onClick={() => {
+              onSelect(svc.id);
+              trackViewService({
+                service_id: svc.id,
+                service_name: svc.name,
+                service_category: svc.category,
+              });
+            }}
             className={`group relative flex items-start gap-3 sm:gap-4 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 text-left rtl:text-right transition-all duration-300 active:scale-[0.98] ${
               isSelected
                 ? "border-accent bg-accent/8 ring-2 ring-accent/30 shadow-md shadow-accent/10 translate-y-[-2px]"
