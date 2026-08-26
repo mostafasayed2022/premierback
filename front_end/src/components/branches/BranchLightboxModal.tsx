@@ -1,10 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, ChevronLeft, ChevronRight, MapPin, Phone } from "lucide-react";
+import {
+  X,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Phone,
+} from "lucide-react";
 import Image from "next/image";
+import { trackViewBranch } from "@/lib/analytics/events";
 
 export interface LightboxItem {
   id: string;
@@ -43,9 +51,24 @@ export function BranchLightboxModal({
   const locale = useLocale();
   const isAr = locale === "ar";
 
+  useEffect(() => {
+    if (isOpen && activeItem) {
+      const branchName =
+        activeItem.branch_name ||
+        (isAr ? activeItem.title_ar || activeItem.title : activeItem.title);
+      trackViewBranch({
+        branch_id: activeItem.id,
+        branch_name: branchName,
+        locale,
+      });
+    }
+  }, [isOpen, activeItem, isAr, locale]);
+
   if (!isOpen || !activeItem || activeIndex === null) return null;
 
-  const itemTitle = isAr ? activeItem.title_ar || activeItem.title : activeItem.title;
+  const itemTitle = isAr
+    ? activeItem.title_ar || activeItem.title
+    : activeItem.title;
   const itemDesc = isAr
     ? activeItem.description_ar || activeItem.description
     : activeItem.description;
@@ -68,7 +91,10 @@ export function BranchLightboxModal({
           className="fixed top-5 right-5 md:top-8 md:right-8 z-[10000] w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all duration-300 hover:scale-110 focus:outline-none shadow-md backdrop-blur-sm group"
           aria-label="Close modal"
         >
-          <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+          <X
+            size={24}
+            className="group-hover:rotate-90 transition-transform duration-300"
+          />
         </button>
 
         {/* Top Header Badge */}
@@ -87,7 +113,10 @@ export function BranchLightboxModal({
             onClick={isAr ? onNext : onPrev}
             className="absolute left-2 md:left-8 z-20 w-12 h-12 md:w-14 md:h-14 rounded-full border border-white/15 bg-black/60 hover:bg-[#C8A96B]/20 hover:border-[#C8A96B]/50 text-white flex items-center justify-center transition-all duration-300 focus:outline-none backdrop-blur-sm group shadow-md"
           >
-            <ChevronLeft size={28} className="group-hover:-translate-x-1 transition-transform" />
+            <ChevronLeft
+              size={28}
+              className="group-hover:-translate-x-1 transition-transform"
+            />
           </button>
 
           <motion.div
@@ -112,7 +141,10 @@ export function BranchLightboxModal({
             onClick={isAr ? onPrev : onNext}
             className="absolute right-2 md:right-8 z-20 w-12 h-12 md:w-14 md:h-14 rounded-full border border-white/15 bg-black/60 hover:bg-[#C8A96B]/20 hover:border-[#C8A96B]/50 text-white flex items-center justify-center transition-all duration-300 focus:outline-none backdrop-blur-sm group shadow-md"
           >
-            <ChevronRight size={28} className="group-hover:translate-x-1 transition-transform" />
+            <ChevronRight
+              size={28}
+              className="group-hover:translate-x-1 transition-transform"
+            />
           </button>
         </div>
 

@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { useState, useEffect } from "react";
 import { getBranches, Branch } from "@/lib/api";
 import Image from "next/image";
+import { trackViewBranch, trackClickMap } from "@/lib/analytics/events";
 
 export default function BranchesSection() {
   const t = useTranslations();
@@ -216,6 +217,12 @@ export default function BranchesSection() {
                       <Button
                         asChild
                         variant="outline"
+                        onClick={() =>
+                          trackViewBranch({
+                            branch_id: branch.id,
+                            branch_name: branchName,
+                          })
+                        }
                         className="flex-1 rounded-full border-white/30 text-white hover:bg-white/10 text-[9px] uppercase tracking-wider py-1.5 font-bold flex items-center justify-center gap-1.5"
                       >
                         <Link href="/branches">
@@ -226,6 +233,12 @@ export default function BranchesSection() {
                       <Button
                         asChild
                         variant="default"
+                        onClick={() =>
+                          trackClickMap({
+                            branch_id: branch.id,
+                            branch_name: branchName,
+                          })
+                        }
                         className="flex-1 rounded-full bg-[#C8A96B] hover:bg-[#B59351] text-slate-950 font-bold text-[9px] uppercase tracking-wider py-1.5 flex items-center justify-center gap-1.5 shadow-sm"
                       >
                         <a

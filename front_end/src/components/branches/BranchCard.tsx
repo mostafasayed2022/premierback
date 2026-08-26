@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { MapPin, Phone, Clock, ArrowRight, Maximize2 } from "lucide-react";
 import Image from "next/image";
 import type { Branch } from "@/lib/types";
-import { trackClickMap } from "@/lib/analytics/events";
+import { trackClickMap, trackViewBranch } from "@/lib/analytics/events";
 
 interface BranchCardProps {
   branch: Branch | any;
@@ -38,7 +38,14 @@ export function BranchCard({ branch, index, onImageClick }: BranchCardProps) {
       <div className="h-full bg-white rounded-3xl border border-accent/20 shadow-md hover:shadow-md hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden card-gold-accent group">
         {/* Photo Header */}
         <div
-          onClick={() => onImageClick?.(index)}
+          onClick={() => {
+            trackViewBranch({
+              branch_id: branch.id,
+              branch_name: isAr ? branch.name_ar || branch.name : branch.name,
+              locale,
+            });
+            onImageClick?.(index);
+          }}
           className="relative h-60 w-full overflow-hidden bg-beige cursor-pointer group/img"
           title={
             isAr
