@@ -79,7 +79,7 @@ export function IVBookingCTA() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 text-white font-bold text-base sm:text-lg px-8 py-4 rounded-2xl border border-white/20 hover:-translate-y-0.5 transition-all duration-300 backdrop-blur-sm"
           >
             <Phone className="w-5 h-5 text-[#C8A96B]" />
-            <span dir="ltr">+20 11 11977705</span>
+            <span dir="ltr">+20 12 0064 4663</span>
           </a>
         </div>
 

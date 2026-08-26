@@ -47,7 +47,7 @@ const REAL_VERIFIED_BRANCHES: VerifiedBranch[] = [
     badge: "قلب القاهرة · على النيل",
     badgeColor: "bg-blue-500/20 text-blue-300 border-blue-400/30",
     address_ar: "فندق فيرمونت نايل سيتي، أبراج نايل سيتي، كورنيش النيل، القاهرة",
-    phone: "+20 11 11977705",
+    phone: "+20 12 0064 4663",
     image_url:
       "https://res.cloudinary.com/u3q5mcfx/image/upload/v1/uploads/1/DSC04519_fyazrj.jpg",
     map_url:
@@ -67,7 +67,7 @@ const REAL_VERIFIED_BRANCHES: VerifiedBranch[] = [
     badge: "غرب القاهرة · الشيخ زايد",
     badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-400/30",
     address_ar: "مجمع أركان بلازا الطبي، مدخل الشيخ زايد، 6 أكتوبر",
-    phone: "+20 11 11977713",
+    phone: "+20 12 0064 4663",
     image_url:
       "https://res.cloudinary.com/u3q5mcfx/image/upload/v1/uploads/1/hero1_qimiy7.jpg",
     map_url:
@@ -87,7 +87,7 @@ const REAL_VERIFIED_BRANCHES: VerifiedBranch[] = [
     badge: "شرق القاهرة · التجمع الخامس",
     badgeColor: "bg-amber-500/20 text-amber-300 border-amber-400/30",
     address_ar: "مجمع EDNC التجاري، مشروع سوديك إيست تاون، التجمع الخامس، القاهرة الجديدة",
-    phone: "+20 11 11977712",
+    phone: "+20 12 0064 4663",
     image_url:
       "https://res.cloudinary.com/u3q5mcfx/image/upload/v1/uploads/1/DSC04539_pxbhlp.jpg",
     map_url:

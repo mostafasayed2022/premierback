@@ -70,7 +70,7 @@ export function FooterContact() {
       label: "Snapchat",
     },
     {
-      href: "https://www.google.com/search?client=safari&hl=en-eg&q=Premier+Care&ludocid=16492088125003417627",
+      href: "https://www.google.com/search?client=safari&hl=en-eg&q=Premier+Health+Clinics&ludocid=16492088125003417627",
       icon: GoogleIcon,
       label: "Google Listing",
       fullWidth: true,
@@ -114,55 +114,31 @@ export function FooterContact() {
           </div>
         </div>
 
-        {/* Phone numbers — per branch cards */}
+        {/* Call Center Number */}
         <div className="flex flex-col gap-2 pt-1 border-t border-white/10">
           <div className="flex items-center gap-2 mb-1">
             <Phone size={13} className="text-accent shrink-0" />
             <span className="text-[10px] uppercase tracking-widest text-white/40 font-bold">
-              {t("Contact.locations")}
+              {t("Contact.callCenter") || "Call Center"}
             </span>
           </div>
-          <div className="flex flex-col gap-1.5">
-            {[
-              {
-                label: t("Contact.branchFairmont") || "Fairmont Nile City",
-                tel: "+201200644663",
-                display: "+20 11 1197 7705",
-                color: "bg-amber-400",
-              },
-              {
-                label: t("Contact.branchArkan") || "Arkan Plaza (Sheikh Zayed)",
-                tel: "+201111977713",
-                display: "+20 11 1197 7713",
-                color: "bg-emerald-400",
-              },
-              {
-                label: t("Contact.branchSodic") || "EDNC Sodic (New Cairo)",
-                tel: "+201111977712",
-                display: "+20 11 1197 7712",
-                color: "bg-sky-400",
-              },
-            ].map(({ label, tel, display, color }) => (
-              <a
-                key={tel}
-                href={`tel:${tel}`}
-                className="group flex items-center justify-between gap-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-accent/30 px-3 py-2 transition-all duration-200"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${color}`} />
-                  <span className="text-[10px] text-white/60 group-hover:text-white/80 truncate transition-colors leading-tight">
-                    {label}
-                  </span>
-                </div>
-                <span
-                  dir="ltr"
-                  className="text-[11px] font-bold text-white group-hover:text-accent transition-colors shrink-0 tabular-nums"
-                >
-                  {display}
-                </span>
-              </a>
-            ))}
-          </div>
+          <a
+            href="tel:+201200644663"
+            className="group flex items-center justify-between gap-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-accent/30 px-3 py-2 transition-all duration-200"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-400" />
+              <span className="text-[10px] text-white/60 group-hover:text-white/80 truncate transition-colors leading-tight">
+                {t("Contact.callCenterLabel") || "Premier Health Call Center"}
+              </span>
+            </div>
+            <span
+              dir="ltr"
+              className="text-[11px] font-bold text-white group-hover:text-accent transition-colors shrink-0 tabular-nums"
+            >
+              +20 12 0064 4663
+            </span>
+          </a>
         </div>
 
 

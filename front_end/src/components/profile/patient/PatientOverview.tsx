@@ -469,7 +469,7 @@ export function PatientOverview({ patient }: PatientOverviewProps) {
                   className="font-bold text-[#1e293b] group-hover:text-[#385366] transition-colors"
                   dir="ltr"
                 >
-                  +20 11 11977705
+                  +20 12 0064 4663
                 </span>
               </div>
             </a>

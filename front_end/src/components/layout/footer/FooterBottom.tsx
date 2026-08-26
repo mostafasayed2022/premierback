@@ -101,7 +101,7 @@ export function FooterBottom() {
       label: "Snapchat",
     },
     {
-      href: "https://www.google.com/search?client=safari&hl=en-eg&sxsrf=ALiCzsYe7w__J5YT0kbjpTX0pf9lCL6qpw:1656257145699&q=Premier+Care&ludocid=16492088125003417627",
+      href: "https://www.google.com/search?client=safari&hl=en-eg&sxsrf=ALiCzsYe7w__J5YT0kbjpTX0pf9lCL6qpw:1656257145699&q=Premier+Health+Clinics&ludocid=16492088125003417627",
       icon: GoogleIcon,
       label: "Google Listing",
     },

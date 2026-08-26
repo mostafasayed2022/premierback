@@ -50,7 +50,7 @@ export const metadata: Metadata = {
       "عناية طبية فاخرة أثناء إقامتك في القاهرة. جلسات IV Therapy بإشراف طبي متخصص.",
     url: "https://www.premierhealthclinics.com/gcc/iv-therapy/ar",
     siteName: "Premier Health Clinics",
-    locale: "ar",
+    locale: "ar_EG",
     type: "website",
     images: [
       {

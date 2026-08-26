@@ -71,40 +71,16 @@ export function NavTopBar({ mounted }: NavTopBarProps) {
       <div className="max-w-[1440px] mx-auto px-6 lg:px-8 h-10 flex items-center justify-between text-[11px] font-medium tracking-wide">
         {/* Left Side: Contact Info (Branch Numbers & Email) + GCC Landing Link */}
         <div className="flex items-center gap-4 xl:gap-5">
-          {/* Branch Phone Numbers */}
-          <div className="flex items-center gap-3 text-[10px] xl:text-[11px]">
-            <a
-              href="tel:+201200644663"
-              className="flex items-center gap-1.5 hover:text-amber-300 transition-colors"
-              title={currentLocale === "ar" ? "فرع فيرمونت نايل سيتي" : "Fairmont Nile City Branch"}
-            >
-              <PhoneCall size={12} className="text-[#C8A96B] shrink-0" />
-              <span>{currentLocale === "ar" ? "فيرمونت:" : "Fairmont:"}</span>
-              <span dir="ltr" className="font-bold">+20 11 11977705</span>
-            </a>
-
-            <span className="text-white/30">•</span>
-
-            <a
-              href="tel:+201111977713"
-              className="flex items-center gap-1.5 hover:text-amber-300 transition-colors"
-              title={currentLocale === "ar" ? "فرع أركان بلازا" : "Arkan Plaza Branch"}
-            >
-              <span>{currentLocale === "ar" ? "أركان:" : "Arkan:"}</span>
-              <span dir="ltr" className="font-bold">+20 11 11977713</span>
-            </a>
-
-            <span className="text-white/30">•</span>
-
-            <a
-              href="tel:+201111977712"
-              className="flex items-center gap-1.5 hover:text-amber-300 transition-colors"
-              title={currentLocale === "ar" ? "فرع سوديك EDNC" : "EDNC Sodic Branch"}
-            >
-              <span>{currentLocale === "ar" ? "سوديك:" : "Sodic:"}</span>
-              <span dir="ltr" className="font-bold">+20 11 11977712</span>
-            </a>
-          </div>
+          {/* Call Center Number */}
+          <a
+            href="tel:+201200644663"
+            className="flex items-center gap-1.5 hover:text-amber-300 transition-colors"
+            title={currentLocale === "ar" ? "مركز الاتصال" : "Call Center"}
+          >
+            <PhoneCall size={12} className="text-[#C8A96B] shrink-0" />
+            <span>{currentLocale === "ar" ? "اتصل بنا:" : "Call Us:"}</span>
+            <span dir="ltr" className="font-bold">+20 12 0064 4663</span>
+          </a>
 
           <span className="w-[1px] h-3.5 bg-white/20" />
 

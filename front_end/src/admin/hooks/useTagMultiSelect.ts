@@ -121,7 +121,7 @@ export function useTagMultiSelect({
   const available = options.filter(
     (o) =>
       !value.includes(o.id) &&
-      o.name.toLowerCase().includes(search.toLowerCase())
+      o.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   // ── Actions ───────────────────────────────────────────────────────────

@@ -117,7 +117,7 @@ export function JsonLd({ locale }: JsonLdProps) {
           {
             "@type": "MedicalClinic",
             name: isAr ? "فرع أركان بلازا (الشيخ زايد)" : "Premier Health - Arkan Plaza (Sheikh Zayed)",
-            telephone: "+201111977713",
+            telephone: "+201200644663",
             address: {
               "@type": "PostalAddress",
               streetAddress: "Arkan Plaza, El-Bostan St",
@@ -142,7 +142,7 @@ export function JsonLd({ locale }: JsonLdProps) {
           {
             "@type": "MedicalClinic",
             name: isAr ? "فرع سوديك EDNC (التجمع الخامس)" : "Premier Health - EDNC Sodic (New Cairo)",
-            telephone: "+201111977712",
+            telephone: "+201200644663",
             address: {
               "@type": "PostalAddress",
               streetAddress: "EDNC Eastown District New Cairo, Sodic, Road 90",

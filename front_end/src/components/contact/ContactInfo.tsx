@@ -83,7 +83,7 @@ export function ContactInfo() {
     {
       id: "fairmont",
       name: isAr ? "فرع فيرمونت نايل سيتي" : "Premier Health Fairmont Nile City",
-      phone: "+20 11 11977705",
+      phone: "+20 12 0064 4663",
       phoneRaw: "+201200644663",
       address: t("fairmontAddress") || "Fairmont Nile City, Cairo",
       mapEmbed:
@@ -93,8 +93,8 @@ export function ContactInfo() {
     {
       id: "arkan",
       name: isAr ? "فرع أركان بلازا (الشيخ زايد)" : "Arkan Plaza (Sheikh Zayed)",
-      phone: "+20 11 11977713",
-      phoneRaw: "+201111977713",
+      phone: "+20 12 0064 4663",
+      phoneRaw: "+201200644663",
       address: t("arkanAddress") || "Arkan Plaza, Sheikh Zayed",
       mapEmbed:
         "https://maps.google.com/maps?q=30.0194029,31.0045291&z=15&output=embed",
@@ -103,8 +103,8 @@ export function ContactInfo() {
     {
       id: "sodic",
       name: isAr ? "فرع سوديك EDNC (التجمع الخامس)" : "EDNC Sodic (New Cairo)",
-      phone: "+20 11 11977712",
-      phoneRaw: "+201111977712",
+      phone: "+20 12 0064 4663",
+      phoneRaw: "+201200644663",
       address: t("sodicAddress") || "EDNC Sodic, Fifth Settlement",
       mapEmbed:
         "https://maps.google.com/maps?q=2G87%2B5RC,%20Eastown,%20New%20Cairo%201&z=15&output=embed",
@@ -115,25 +115,13 @@ export function ContactInfo() {
   const topCards = [
     {
       icon: Phone,
-      title: t("formPhone") || "Phone Numbers",
+      title: t("formPhone") || "Call Center",
       lines: [
         {
           text: isAr
-            ? "فيرمونت نايل سيتي: +20 11 11977705"
-            : "Fairmont Nile City: +20 11 11977705",
+            ? "مركز الاتصال: +20 12 0064 4663"
+            : "Call Center: +20 12 0064 4663",
           link: "tel:+201200644663",
-        },
-        {
-          text: isAr
-            ? "أركان بلازا (الشيخ زايد): +20 11 11977713"
-            : "Arkan Plaza (Sheikh Zayed): +20 11 11977713",
-          link: "tel:+201111977713",
-        },
-        {
-          text: isAr
-            ? "سوديك EDNC (التجمع الخامس): +20 11 11977712"
-            : "EDNC Sodic (New Cairo): +20 11 11977712",
-          link: "tel:+201111977712",
         },
       ],
       color: "border-accent/20 bg-accent/5 text-accent",

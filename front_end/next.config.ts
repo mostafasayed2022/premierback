@@ -58,6 +58,15 @@ const nextConfig: NextConfig = {
       "@radix-ui/react-slot",
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/gcc/iv-theropy/ar",
+        destination: "/gcc/iv-therapy/ar",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default analyzer(withNextIntl(nextConfig));
