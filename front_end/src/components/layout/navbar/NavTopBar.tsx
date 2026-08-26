@@ -19,6 +19,7 @@ import {
 import { usePatientAuth } from "@/context/PatientAuthContext";
 import { LANGUAGES } from "./NavbarConstants";
 import { getUserRole, type UserRole } from "@/lib/api/auth";
+import { trackClickCall } from "@/lib/analytics/events";
 
 interface NavTopBarProps {
   mounted: boolean;
@@ -74,6 +75,12 @@ export function NavTopBar({ mounted }: NavTopBarProps) {
           {/* Call Center Number */}
           <a
             href="tel:+201200644663"
+            onClick={() =>
+              trackClickCall({
+                cta_position: "nav_topbar",
+                phone_type: "EG",
+              })
+            }
             className="flex items-center gap-1.5 hover:text-amber-300 transition-colors"
             title={currentLocale === "ar" ? "مركز الاتصال" : "Call Center"}
           >

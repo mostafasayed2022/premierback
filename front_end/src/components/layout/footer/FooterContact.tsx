@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { MapPin, Phone, Mail, MessageSquare } from "lucide-react";
+import { trackClickCall } from "@/lib/analytics/events";
 
 /* ─── Brand SVG Icons ───────────────────────────────────────────────── */
 
@@ -124,6 +125,12 @@ export function FooterContact() {
           </div>
           <a
             href="tel:+201200644663"
+            onClick={() =>
+              trackClickCall({
+                cta_position: "footer",
+                phone_type: "EG",
+              })
+            }
             className="group flex items-center justify-between gap-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-accent/30 px-3 py-2 transition-all duration-200"
           >
             <div className="flex items-center gap-2 min-w-0">

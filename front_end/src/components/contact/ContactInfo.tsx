@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Phone, Mail, MapPin, Share2 } from "lucide-react";
+import { trackClickCall } from "@/lib/analytics/events";
 
 /* ─── Brand SVG Icons ───────────────────────────────────────────────── */
 
@@ -210,6 +211,14 @@ export function ContactInfo() {
                     <a
                       key={idx}
                       href={l.link}
+                      onClick={() => {
+                        if (l.link.startsWith("tel:")) {
+                          trackClickCall({
+                            cta_position: "contact_top_card",
+                            phone_type: "EG",
+                          });
+                        }
+                      }}
                       className="block text-sm text-foreground/80 hover:text-accent transition-colors font-medium"
                     >
                       {l.text}
@@ -239,6 +248,13 @@ export function ContactInfo() {
                 <h4 className="font-bold text-primary text-base">{b.name}</h4>
                 <a
                   href={`tel:${b.phoneRaw}`}
+                  onClick={() =>
+                    trackClickCall({
+                      branch_name: b.name,
+                      cta_position: "contact_branch_card",
+                      phone_type: "EG",
+                    })
+                  }
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:underline"
                 >
                   <Phone className="w-3.5 h-3.5" />
