@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { MapPin, Phone, Clock, ArrowRight, Maximize2 } from "lucide-react";
 import Image from "next/image";
 import type { Branch } from "@/lib/types";
+import { trackClickMap } from "@/lib/analytics/events";
 
 interface BranchCardProps {
   branch: Branch | any;
@@ -147,6 +148,12 @@ export function BranchCard({ branch, index, onImageClick }: BranchCardProps) {
                     href={finalMapUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() =>
+                      trackClickMap({
+                        branch_id: branch.id,
+                        branch_name: isAr ? branch.name_ar || branch.name : branch.name,
+                      })
+                    }
                     className="text-xs font-bold text-accent tracking-wide uppercase flex items-center gap-1.5 hover:text-primary transition-colors"
                   >
                     <MapPin size={13} />

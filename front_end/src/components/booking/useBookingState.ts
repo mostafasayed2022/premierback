@@ -10,6 +10,7 @@ import {
   trackStartBooking,
   trackSubmitLead,
   trackBookingComplete,
+  trackPurchase,
 } from "@/lib/analytics/events";
 import { getAttribution, cleanAttribution } from "@/lib/analytics/attribution";
 
@@ -96,6 +97,21 @@ export function useBookingState() {
     if (paymentStatus === "success") {
       setConfirmed(true);
       toast.success(t("paymentSuccess"));
+
+      // ── purchase: fire on confirmed successful payment using real transaction/booking ID ──
+      const txnId = params.get("txn_id") || params.get("transaction_id") || bookingId;
+      if (txnId) {
+        const storageKey = `premier_purchased_${txnId}`;
+        if (!sessionStorage.getItem(storageKey)) {
+          sessionStorage.setItem(storageKey, "1");
+          trackPurchase({
+            transaction_id: txnId,
+            booking_id: bookingId || undefined,
+            value: 0,
+            currency: "EGP",
+          });
+        }
+      }
       return;
     }
 

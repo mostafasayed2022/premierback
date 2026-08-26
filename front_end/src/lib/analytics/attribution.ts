@@ -25,6 +25,7 @@ const ATTRIBUTION_PARAMS: (keyof Attribution)[] = [
   "wbraid",
   "fbclid",
   "ttclid",
+  "scclid",
   "sc_click_id",
 ];
 
@@ -93,7 +94,7 @@ function parseAttributionFromURL(): Attribution {
       }
     }
 
-    attrs.landing_page = window.location.pathname + window.location.search;
+    attrs.landing_page = window.location.pathname;
     attrs.referrer = document.referrer || undefined;
 
     return attrs;

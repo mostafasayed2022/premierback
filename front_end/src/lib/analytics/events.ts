@@ -17,15 +17,29 @@ import type {
   PurchaseParams,
 } from "./types";
 
+// Helper to extract locale from window.location.pathname if omitted
+function getClientLocale(override?: string): string | undefined {
+  if (override) return override;
+  if (typeof window === "undefined") return undefined;
+  const match = window.location.pathname.match(/^\/(en|ar|fr|de|es|it|tr|ru)(\/|$)/);
+  return match ? match[1] : undefined;
+}
+
+function getClientPathname(override?: string): string | undefined {
+  if (override) return override;
+  if (typeof window === "undefined") return undefined;
+  return window.location.pathname;
+}
+
 // ─── 1. view_service ──────────────────────────────────────────────────────────
-/** Fire when a service page or service card is viewed. */
+/** Fire when a service detail page is viewed (NOT on card mount). */
 export function trackViewService(params: ViewServiceParams): void {
   pushDataLayer("view_service", {
     service_id: params.service_id,
     service_name: params.service_name,
     service_category: params.service_category,
-    page_path: params.page_path ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
-    locale: params.locale,
+    page_path: getClientPathname(params.page_path),
+    locale: getClientLocale(params.locale),
   });
 }
 
@@ -35,18 +49,20 @@ export function trackSelectBranch(params: SelectBranchParams): void {
   pushDataLayer("select_branch", {
     branch_id: params.branch_id,
     branch_name: params.branch_name,
-    page_path: params.page_path ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
+    page_path: getClientPathname(params.page_path),
     service_name: params.service_name,
+    locale: getClientLocale(params.locale),
   });
 }
 
 // ─── 3. view_branch ──────────────────────────────────────────────────────────
-/** Fire when a branch detail page is viewed. */
+/** Fire when a branch detail page is viewed (NOT on card mount). */
 export function trackViewBranch(params: ViewBranchParams): void {
   pushDataLayer("view_branch", {
     branch_id: params.branch_id,
     branch_name: params.branch_name,
-    page_path: params.page_path ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
+    page_path: getClientPathname(params.page_path),
+    locale: getClientLocale(params.locale),
   });
 }
 
@@ -57,7 +73,8 @@ export function trackClickMap(params: ClickMapParams): void {
     branch_id: params.branch_id,
     branch_name: params.branch_name,
     location: params.location,
-    page_path: params.page_path ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
+    page_path: getClientPathname(params.page_path),
+    locale: getClientLocale(params.locale),
   });
 }
 
@@ -65,12 +82,13 @@ export function trackClickMap(params: ClickMapParams): void {
 /** Fire when a user clicks any WhatsApp CTA. NEVER include phone numbers. */
 export function trackClickWhatsApp(params: ClickWhatsAppParams): void {
   pushDataLayer("click_whatsapp", {
-    location: params.location ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
-    page_path: params.page_path ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
+    location: params.location ?? getClientPathname(params.page_path),
+    page_path: getClientPathname(params.page_path),
     service_name: params.service_name,
     branch_name: params.branch_name,
     phone_type: params.phone_type,
     cta_position: params.cta_position,
+    locale: getClientLocale(params.locale),
   });
 }
 
@@ -78,12 +96,13 @@ export function trackClickWhatsApp(params: ClickWhatsAppParams): void {
 /** Fire when a user clicks any phone/call CTA. NEVER include phone numbers. */
 export function trackClickCall(params: ClickCallParams): void {
   pushDataLayer("click_call", {
-    location: params.location ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
-    page_path: params.page_path ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
+    location: params.location ?? getClientPathname(params.page_path),
+    page_path: getClientPathname(params.page_path),
     service_name: params.service_name,
     branch_name: params.branch_name,
     phone_type: params.phone_type,
     cta_position: params.cta_position,
+    locale: getClientLocale(params.locale),
   });
 }
 
@@ -96,6 +115,8 @@ export function trackStartBooking(params: StartBookingParams = {}): void {
     branch_id: params.branch_id,
     branch_name: params.branch_name,
     booking_source: params.booking_source ?? "website",
+    page_path: getClientPathname(params.page_path),
+    locale: getClientLocale(params.locale),
   });
 }
 
@@ -110,14 +131,15 @@ export function trackSubmitLead(params: SubmitLeadParams): void {
     service_name: params.service_name,
     branch_name: params.branch_name,
     source: params.source ?? "booking_wizard",
-    page_path: params.page_path ?? (typeof window !== "undefined" ? window.location.pathname : undefined),
+    page_path: getClientPathname(params.page_path),
+    locale: getClientLocale(params.locale),
   });
 }
 
 // ─── 9. booking_complete ─────────────────────────────────────────────────────
 /**
  * Fire ONLY after confirmed successful booking API response (201).
- * Never fire on API failure. Use useRef guard to prevent duplicate fires.
+ * Never fire on API failure.
  */
 export function trackBookingComplete(params: BookingCompleteParams): void {
   pushDataLayer("booking_complete", {
@@ -128,6 +150,8 @@ export function trackBookingComplete(params: BookingCompleteParams): void {
     branch_name: params.branch_name,
     value: params.value,
     currency: params.currency ?? "EGP",
+    page_path: getClientPathname(params.page_path),
+    locale: getClientLocale(params.locale),
   });
 }
 
@@ -143,13 +167,15 @@ export function trackAppointmentAttended(params: AppointmentAttendedParams): voi
     branch_id: params.branch_id,
     value: params.value,
     currency: params.currency ?? "EGP",
+    page_path: getClientPathname(params.page_path),
+    locale: getClientLocale(params.locale),
   });
 }
 
 // ─── 11. purchase ────────────────────────────────────────────────────────────
 /**
  * Fire only after confirmed payment success (Paymob webhook → backend → frontend).
- * Use useRef guard to prevent duplicate fires.
+ * Deduplicated with stable transaction_id / booking_id.
  */
 export function trackPurchase(params: PurchaseParams): void {
   pushDataLayer("purchase", {
@@ -159,5 +185,7 @@ export function trackPurchase(params: PurchaseParams): void {
     branch_name: params.branch_name,
     value: params.value,
     currency: params.currency,
+    page_path: getClientPathname(params.page_path),
+    locale: getClientLocale(params.locale),
   });
 }

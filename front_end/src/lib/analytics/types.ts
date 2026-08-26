@@ -25,6 +25,7 @@ export interface Attribution {
   // Platform click IDs
   fbclid?: string;
   ttclid?: string;
+  scclid?: string;
   sc_click_id?: string;
 
   // Attribution meta
@@ -57,12 +58,14 @@ export interface SelectBranchParams {
   branch_name: string;
   page_path?: string;
   service_name?: string;
+  locale?: string;
 }
 
 export interface ViewBranchParams {
   branch_id: string | number;
   branch_name: string;
   page_path?: string;
+  locale?: string;
 }
 
 export interface ClickMapParams {
@@ -70,6 +73,7 @@ export interface ClickMapParams {
   branch_name: string;
   location?: string;
   page_path?: string;
+  locale?: string;
 }
 
 export interface ClickWhatsAppParams {
@@ -79,6 +83,7 @@ export interface ClickWhatsAppParams {
   branch_name?: string;
   phone_type?: string;
   cta_position?: string;
+  locale?: string;
 }
 
 export interface ClickCallParams {
@@ -88,6 +93,7 @@ export interface ClickCallParams {
   branch_name?: string;
   phone_type?: string;
   cta_position?: string;
+  locale?: string;
 }
 
 export interface StartBookingParams {
@@ -96,6 +102,8 @@ export interface StartBookingParams {
   branch_id?: string | number;
   branch_name?: string;
   booking_source?: string;
+  page_path?: string;
+  locale?: string;
 }
 
 export interface SubmitLeadParams {
@@ -104,6 +112,7 @@ export interface SubmitLeadParams {
   branch_name?: string;
   source?: string;
   page_path?: string;
+  locale?: string;
 }
 
 export interface BookingCompleteParams {
@@ -114,6 +123,8 @@ export interface BookingCompleteParams {
   branch_name?: string;
   value?: number;
   currency?: string;
+  page_path?: string;
+  locale?: string;
 }
 
 export interface AppointmentAttendedParams {
@@ -122,6 +133,8 @@ export interface AppointmentAttendedParams {
   branch_id?: string | number;
   value?: number;
   currency?: string;
+  page_path?: string;
+  locale?: string;
 }
 
 export interface PurchaseParams {
@@ -131,6 +144,8 @@ export interface PurchaseParams {
   branch_name?: string;
   value: number;
   currency: string;
+  page_path?: string;
+  locale?: string;
 }
 
 // ─── DataLayer Event ──────────────────────────────────────────────────────────

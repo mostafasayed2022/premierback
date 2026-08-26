@@ -39,6 +39,7 @@ wbraid = models.CharField(max_length=500, blank=True, null=True)
 # Platform click IDs
 fbclid = models.CharField(max_length=500, blank=True, null=True)
 ttclid = models.CharField(max_length=500, blank=True, null=True)
+scclid = models.CharField(max_length=500, blank=True, null=True)
 sc_click_id = models.CharField(max_length=500, blank=True, null=True)
 
 # Attribution meta
@@ -194,7 +195,7 @@ ATTRIBUTION_ALLOWED_FIELDS = {
     "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
     "campaign_id", "adset_id", "ad_id",
     "gclid", "gbraid", "wbraid",
-    "fbclid", "ttclid", "sc_click_id",
+    "fbclid", "ttclid", "scclid", "sc_click_id",
     "landing_page", "referrer",
 }
 
@@ -218,6 +219,7 @@ class AttributionSerializer(serializers.Serializer):
     wbraid = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
     fbclid = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
     ttclid = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
+    scclid = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
     sc_click_id = serializers.CharField(max_length=500, required=False, allow_blank=True, allow_null=True)
     landing_page = serializers.CharField(max_length=2000, required=False, allow_blank=True, allow_null=True)
     referrer = serializers.CharField(max_length=2000, required=False, allow_blank=True, allow_null=True)

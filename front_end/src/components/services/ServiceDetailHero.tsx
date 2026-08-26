@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { ServiceData } from "./types";
+import { trackViewService } from "@/lib/analytics/events";
 
 interface ServiceDetailHeroProps {
   service: ServiceData;
@@ -15,6 +17,19 @@ export function ServiceDetailHero({ service }: ServiceDetailHeroProps) {
   const t = useTranslations();
   const locale = useLocale();
   const isAr = locale === "ar";
+  const hasTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasTrackedRef.current && service) {
+      hasTrackedRef.current = true;
+      trackViewService({
+        service_id: service.id,
+        service_name: isAr ? service.name_ar : service.name,
+        service_category: service.category,
+        locale,
+      });
+    }
+  }, [service, isAr, locale]);
 
   return (
     <section className="relative overflow-hidden w-full min-h-[360px] sm:min-h-[440px] md:min-h-[50vh] flex items-center py-8 sm:py-14 md:py-20 bg-[#385366] rounded-none md:rounded-[32px] border-y md:border border-accent/15 mb-6 sm:mb-8 md:mb-12">
