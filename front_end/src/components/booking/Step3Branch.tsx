@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { getBranchesByService, Branch } from "@/lib/api";
 import { MapPin, Check, Phone } from "lucide-react";
 import Image from "next/image";
+import { trackSelectBranch } from "@/lib/analytics/events";
 
 interface Step3BranchProps {
   selected: string;
@@ -61,7 +62,13 @@ export function Step3Branch({
           <button
             key={branch.id}
             type="button"
-            onClick={() => onSelect(branch.id)}
+            onClick={() => {
+              onSelect(branch.id);
+              trackSelectBranch({
+                branch_id: branch.id,
+                branch_name: branch.name,
+              });
+            }}
             className={`group relative flex items-start gap-3 sm:gap-4 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 text-left rtl:text-right transition-all duration-300 active:scale-[0.98] ${
               isSelected
                 ? "border-accent bg-accent/8 ring-2 ring-accent/30 shadow-md shadow-accent/10 translate-y-[-2px]"
