@@ -25,8 +25,8 @@ def send_otp_email_task(user_id, otp_code):
         fail_silently=False,
     )
 
-@shared_task
-def send_booking_confirmation_task(booking_id):
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_booking_confirmation_task(self, booking_id):
     try:
         booking = Booking.objects.select_related(
             'patient__user', 'doctor__user', 'service', 'branch'
@@ -45,14 +45,16 @@ def send_booking_confirmation_task(booking_id):
         f"Time: {booking.start_time}\n\n"
         f"Thank you for choosing {getattr(settings, 'CLINIC_NAME', 'Our Clinic')}.\n"
     )
-    send_mail(
-        subject,
-        message,
-        settings.DEFAULT_FROM_EMAIL,
-        [booking.patient.user.email],
-        fail_silently=False,
-    )
-
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [booking.patient.user.email],
+            fail_silently=False,
+        )
+    except Exception as exc:
+        raise self.retry(exc=exc)
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_booking_rescheduled_notification_task(self, booking_id, doctor_name, old_date, old_time):
