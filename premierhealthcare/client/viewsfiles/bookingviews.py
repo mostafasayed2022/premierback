@@ -47,7 +47,8 @@ class CreateBookingView(APIView):
                 return Response({"detail": "Email and phone are required for guest booking."},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-            existing_user = CustomUser.objects.filter(email=email).first()
+            # Fix — case insensitive email lookup
+            existing_user = CustomUser.objects.filter(email__iexact=email).first()
             if existing_user:
                 if not hasattr(existing_user, 'patient_profile'):
                     return Response(
@@ -67,11 +68,13 @@ class CreateBookingView(APIView):
                     username = f"{base_username}_{counter}"
                     counter += 1
 
+                # Fix — set is_guest=True
                 guest_user = CustomUser.objects.create(
                     username=username,
                     email=email,
                     role=Role.PATIENT,
                     is_verified=True,
+                    is_guest=True,
                 )
                 guest_user.set_unusable_password()
                 guest_user.save()
@@ -101,7 +104,7 @@ class CreateBookingView(APIView):
                 amount=booking.fee,
                 status=PaymentStatus.PENDING,
             )
-            # Send confirmation email 
+            # Send confirmation email
             send_booking_confirmation_task.delay(booking.id)
 
             return Response({
