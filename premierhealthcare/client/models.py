@@ -59,6 +59,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    is_guest = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
