@@ -242,22 +242,6 @@ class Doctor(models.Model):
         return f"Dr. {self.user.username}"
 
 
-# Self-healing column check for client_doctor table
-try:
-    from django.db import connection
-    with connection.cursor() as cursor:
-        cursor.execute("PRAGMA table_info(client_doctor);")
-        _existing_cols = [row[1] for row in cursor.fetchall()]
-        if _existing_cols:
-            if "experience" not in _existing_cols:
-                cursor.execute("ALTER TABLE client_doctor ADD COLUMN experience INTEGER DEFAULT 10;")
-            if "patients" not in _existing_cols:
-                cursor.execute("ALTER TABLE client_doctor ADD COLUMN patients INTEGER DEFAULT 500;")
-            if "languages" not in _existing_cols:
-                cursor.execute("ALTER TABLE client_doctor ADD COLUMN languages VARCHAR(250) DEFAULT 'English, Arabic';")
-except Exception:
-    pass
-
 
 # class DoctorBranch(models.Model):
 #     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
