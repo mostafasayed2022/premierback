@@ -140,17 +140,36 @@ class GuestBookingLookupView(APIView):
         booking_reference = request.data.get("booking_reference")
 
         if not email or not booking_reference:
-            return Response({"detail": "Both email and booking_reference are required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Both email and booking_reference are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            booking = get_object_or_404(
-                Booking.objects.select_related("patient__user", "doctor__user", "service", "branch"),
-                id=booking_reference,
-                patient__user__email=email
-            )
+            booking = Booking.objects.select_related(
+                "patient__user", "doctor__user", "service", "branch"
+            ).filter(id=booking_reference).first()
+
+            if not booking:
+                return Response(
+                    {"detail": "Booking not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Fix — case insensitive email check
+            if booking.patient.user.email.lower() != email.lower():
+                return Response(
+                    {"detail": "Booking not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
             return Response(BookingSerializer(booking).data)
+
         except Exception:
-            return Response({"detail": "Booking not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Booking not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
 
