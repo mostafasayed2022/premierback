@@ -1,0 +1,36 @@
+nohup: ignoring input
+/home/islammady/premierback/venv/lib64/python3.9/site-packages/celery/platforms.py:841: SecurityWarning: You're running the worker with superuser privileges: this is
+absolutely not recommended!
+
+Please specify a different user using the --uid option.
+
+User information: uid=0 euid=0 gid=0 egid=0
+
+  warnings.warn(SecurityWarning(ROOT_DISCOURAGED.format(
+ 
+ -------------- celery@92-205-178-100.cprapid.com v5.6.3 (recovery)
+--- ***** ----- 
+-- ******* ---- Linux-5.14.0-687.38.1.el9_8.x86_64-x86_64-with-glibc2.34 2026-08-28 01:25:03
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         premierhealthcare:0x1534c79c47c0
+- ** ---------- .> transport:   redis://127.0.0.1:6379/0
+- ** ---------- .> results:     disabled://
+- *** --- * --- .> concurrency: 4 (thread)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> default          exchange=default(direct) key=default
+                .> high_priority    exchange=default(direct) key=high_priority
+
+[tasks]
+  . client.tasks.send_booking_confirmation_task
+  . client.tasks.send_booking_rescheduled_notification_task
+  . client.tasks.send_otp_email_task
+
+[2026-08-28 01:25:03,415: INFO/MainProcess] Connected to redis://127.0.0.1:6379/0
+[2026-08-28 01:25:03,418: INFO/MainProcess] mingle: searching for neighbors
+[2026-08-28 01:25:04,424: INFO/MainProcess] mingle: all alone
+[2026-08-28 01:25:04,433: INFO/MainProcess] celery@92-205-178-100.cprapid.com ready.
+[2026-08-28 01:25:44,212: INFO/MainProcess] Task client.tasks.send_booking_confirmation_task[7163f814-fcc9-4f90-a6cc-bccb3026822c] received
+[2026-08-28 01:25:44,783: INFO/MainProcess] Task client.tasks.send_booking_confirmation_task[7163f814-fcc9-4f90-a6cc-bccb3026822c] succeeded in 0.5699841680470854s: None

@@ -1,0 +1,15 @@
+Migrations for 'client':
+  client/migrations/0014_alter_branch_latitude_alter_branch_longitude_and_more.py
+    - Alter field latitude on branch
+    - Alter field longitude on branch
+    - Alter field services on branch
+    - Alter field description on department
+    - Alter field icon on department
+    - Alter field description on gallery
+    - Alter field description_ar on gallery
+    - Alter field title_ar on gallery
+    - Alter field description on service
+    - Alter field name_ar on testimonial
+    - Alter field role on testimonial
+    - Alter field role_ar on testimonial
+    - Alter field text_ar on testimonial

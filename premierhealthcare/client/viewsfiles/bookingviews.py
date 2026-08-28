@@ -105,7 +105,7 @@ class CreateBookingView(APIView):
                 status=PaymentStatus.PENDING,
             )
             # Send confirmation email
-            send_booking_confirmation_task.delay(booking.id)
+            send_booking_confirmation_task.delay(str(booking.id))
 
             return Response({
                 "booking": BookingSerializer(booking).data,
