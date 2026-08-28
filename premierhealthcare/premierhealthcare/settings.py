@@ -275,7 +275,7 @@ EMAIL_SSL_CERTFILE = None
 EMAIL_SSL_KEYFILE = None
 EMAIL_TIMEOUT = 30
 #email config
-EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
