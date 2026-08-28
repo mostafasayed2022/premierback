@@ -237,7 +237,7 @@ class UserSchema(AdminSchema):
     endpoint               = "/api/admin-users/"
     read_serializer_class  = CustomUserSerializer
     write_serializer_class = CustomUserSerializer
-    list_display           = ["id", "username", "email", "role", "is_staff", "is_active"]
+    list_display           = ["id", "username", "email", "role", "is_staff", "is_active","is_guest"]
     search_fields          = ["username", "email", "first_name", "last_name"]
     ordering               = ["-id"]
     filterset_fields       = ["role"]  
