@@ -41,6 +41,7 @@ def send_booking_confirmation_task(self, booking_id):
         f"Doctor: Dr. {booking.doctor.user.get_full_name()}\n"
         f"Service: {booking.service.name}\n"
         f"Branch: {booking.branch.name}\n"
+        f"Branch Phone: {booking.branch.phone}\n"
         f"Date: {booking.date}\n"
         f"Time: {booking.start_time}\n\n"
         f"Thank you for choosing {getattr(settings, 'CLINIC_NAME', 'Our Clinic')}.\n"
