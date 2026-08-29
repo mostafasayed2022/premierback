@@ -14,6 +14,7 @@ export function useDynamicPage(modelName: string) {
     useState<PaginatedResponse<Record<string, unknown>> | null>(null);
   const [listLoading, setListLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [modal, setModal] = useState<ModalType>(null);
@@ -43,7 +44,7 @@ export function useDynamicPage(modelName: string) {
   const loadList = useCallback(() => {
     if (!schema) return;
     setListLoading(true);
-    const params: Record<string, string | number> = { page, page_size: 25 };
+    const params: Record<string, string | number> = { page, page_size: pageSize };
     if (search) params.search = search;
     crudApi
       .list(schema.endpoint, params)
@@ -55,7 +56,7 @@ export function useDynamicPage(modelName: string) {
         showToast(e.message, "error");
         setListLoading(false);
       });
-  }, [schema, page, search, showToast]);
+  }, [schema, page, pageSize, search, showToast]);
 
   useEffect(() => {
     loadList();
@@ -172,6 +173,8 @@ export function useDynamicPage(modelName: string) {
     listLoading,
     page,
     setPage,
+    pageSize,
+    setPageSize,
     searchInput,
     modal,
     activeRecord,

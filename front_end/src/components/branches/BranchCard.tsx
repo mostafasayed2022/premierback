@@ -144,9 +144,8 @@ export function BranchCard({ branch, index, onImageClick }: BranchCardProps) {
             const finalMapUrl =
               branch.mapUrl ||
               branch.map_url ||
-              (branch.latitude && branch.longitude
-                ? `https://www.google.com/maps?q=${branch.latitude},${branch.longitude}`
-                : null);
+              (branch as any).url ||
+              null;
 
             return (
               <div className="flex items-center justify-between pt-4 border-t border-accent/10 mt-auto">

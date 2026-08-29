@@ -165,6 +165,7 @@ export function GccLocations() {
                   page_path: PAGE_PATH,
                 })
               }
+              
               className="group bg-white/[0.04] border border-white/10 hover:border-amber-400/40 rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-black/40 flex flex-col justify-between"
             >
               <div>

@@ -48,8 +48,7 @@ interface ApiBranch {
   address: string;
   city: string;
   phone: string;
-  latitude: number | null;
-  longitude: number | null;
+  url: string | null;
   image_url: string | null;
   map_url?: string | null;
   name_ar?: string;
@@ -152,11 +151,7 @@ export function mergeSvc(s: ApiService): Service {
 // ─── Branch Merge ─────────────────────────────────────────────────────────────
 
 export function mergeBranch(b: ApiBranch): Branch {
-  const generatedMapUrl =
-    b.map_url ||
-    (b.latitude && b.longitude
-      ? `https://www.google.com/maps?q=${b.latitude},${b.longitude}`
-      : "");
+  const finalMapUrl = b.url || b.map_url || "";
 
   return {
     ...b,
@@ -170,8 +165,9 @@ export function mergeBranch(b: ApiBranch): Branch {
     hours: "",
     hours_ar: "",
     mapEmbed: "",
-    mapUrl: generatedMapUrl,
-    map_url: generatedMapUrl,
+    mapUrl: finalMapUrl,
+    map_url: finalMapUrl,
+    url: finalMapUrl,
     country: "",
     services: [],
   } as Branch;

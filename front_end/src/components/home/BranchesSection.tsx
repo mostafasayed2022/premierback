@@ -94,9 +94,8 @@ export default function BranchesSection() {
             const mapHref =
               branch.mapUrl ||
               (branch as any).map_url ||
-              (branch.latitude && branch.longitude
-                ? `https://www.google.com/maps?q=${branch.latitude},${branch.longitude}`
-                : "#");
+              (branch as any).url ||
+              "#";
 
             return (
               <motion.div

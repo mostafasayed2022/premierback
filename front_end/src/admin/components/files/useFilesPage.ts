@@ -94,6 +94,8 @@ export function useFilesPage() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
+  const [filesPage, setFilesPage] = useState(1);
+  const [filesPageSize, setFilesPageSize] = useState(25);
 
   // ── Load files ───────────────────────────────────────────────
   const loadFiles = useCallback(async () => {
@@ -245,6 +247,14 @@ export function useFilesPage() {
     f.original_name.toLowerCase().includes(search.toLowerCase()),
   );
 
+  // ── Pagination ───────────────────────────────────────────────
+  const filteredTotal = filtered.length;
+  const filesTotalPages = Math.max(1, Math.ceil(filteredTotal / filesPageSize));
+  const paginatedFiles = filtered.slice(
+    (filesPage - 1) * filesPageSize,
+    filesPage * filesPageSize,
+  );
+
   return {
     files,
     loading,
@@ -257,5 +267,12 @@ export function useFilesPage() {
     handleUpload,
     handleDelete,
     filtered,
+    paginatedFiles,
+    filteredTotal,
+    filesPage,
+    setFilesPage,
+    filesPageSize,
+    setFilesPageSize,
+    filesTotalPages,
   };
 }

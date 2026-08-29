@@ -25,6 +25,8 @@ export function DynamicPage({ modelName }: DynamicPageProps) {
     listLoading,
     page,
     setPage,
+    pageSize,
+    setPageSize,
     searchInput,
     modal,
     activeRecord,
@@ -122,6 +124,8 @@ export function DynamicPage({ modelName }: DynamicPageProps) {
         currentPage={listData?.current_page ?? page}
         totalPages={listData?.total_pages ?? 1}
         onPageChange={(p) => setPage(p)}
+        pageSize={pageSize}
+        onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
       />
 
       {modal === "create" && (

@@ -63,8 +63,7 @@ interface ApiBranch {
   address: string;
   city: string;
   phone: string;
-  latitude: number | null;
-  longitude: number | null;
+  url: string | null;
   image_url: string | null;
   name_ar?: string;
   address_ar?: string;

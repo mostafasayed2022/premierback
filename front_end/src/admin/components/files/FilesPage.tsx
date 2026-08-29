@@ -8,6 +8,7 @@ import { DropZone } from "./DropZone";
 import { FilesPageHero } from "./FilesPageHero";
 import { UploadQueueUI } from "./UploadQueueUI";
 import { FilesTable } from "./FilesTable";
+import { Pagination } from "../ui/Pagination";
 
 // ─── Files Page ────────────────────────────────────────────────────────────
 export function FilesPage() {
@@ -23,6 +24,13 @@ export function FilesPage() {
     handleUpload,
     handleDelete,
     filtered,
+    paginatedFiles,
+    filteredTotal,
+    filesPage,
+    setFilesPage,
+    filesPageSize,
+    setFilesPageSize,
+    filesTotalPages,
   } = useFilesPage();
 
   return (
@@ -45,8 +53,12 @@ export function FilesPage() {
             className="w-full pl-9 pr-3 py-2 bg-white border border-[#C8A96B]/15 rounded-xl text-slate-800 text-sm outline-none shadow-sm focus:border-[#C8A96B]/40 transition-colors"
             placeholder="Search files…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setFilesPage(1); }}
           />
+        </div>
+        <div style={{ fontSize: 12, color: "#64748B", fontWeight: 600, marginLeft: "auto" }}>
+          {filteredTotal} {filteredTotal === 1 ? "file" : "files"}
+          {search ? " found" : " total"}
         </div>
       </div>
 
@@ -56,12 +68,23 @@ export function FilesPage() {
           <span className="ml-3 opacity-60">Loading files…</span>
         </div>
       ) : (
-        <FilesTable
-          filtered={filtered}
-          search={search}
-          deleting={deleting}
-          handleDelete={handleDelete}
-        />
+        <>
+          <FilesTable
+            filtered={paginatedFiles}
+            search={search}
+            deleting={deleting}
+            handleDelete={handleDelete}
+          />
+
+          <Pagination
+            count={filteredTotal}
+            currentPage={filesPage}
+            totalPages={filesTotalPages}
+            onPageChange={(p) => setFilesPage(p)}
+            pageSize={filesPageSize}
+            onPageSizeChange={(s) => { setFilesPageSize(s); setFilesPage(1); }}
+          />
+        </>
       )}
     </div>
   );

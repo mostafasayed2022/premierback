@@ -187,15 +187,103 @@ export const BookingsTable = React.memo(function BookingsTable({ bookings, onEdi
       </div>
 
       {/* Pagination */}
-      <div style={paginationStyle}>
-        <div style={{ fontSize: 12, color: "#64748B" }}>
-          Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+      {table.getPageCount() > 1 && (
+        <div style={paginationStyle}>
+          {/* Record info */}
+          <div style={{ fontSize: 12, color: "#64748B", minWidth: 140 }}>
+            {(() => {
+              const ps = table.getState().pagination.pageSize;
+              const pi = table.getState().pagination.pageIndex;
+              const total = table.getFilteredRowModel().rows.length;
+              const start = pi * ps + 1;
+              const end = Math.min((pi + 1) * ps, total);
+              return total === 0 ? "No records" : `${start}–${end} of ${total} records`;
+            })()}
+          </div>
+
+          {/* Page numbers */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {/* First */}
+            <button
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+              style={{ ...btnPageStyle, opacity: !table.getCanPreviousPage() ? 0.35 : 1 }}
+            >«</button>
+            {/* Prev */}
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              style={{ ...btnPageStyle, opacity: !table.getCanPreviousPage() ? 0.35 : 1 }}
+            >‹</button>
+
+            {/* Page numbers with ellipsis */}
+            {(() => {
+              const total = table.getPageCount();
+              const cur = table.getState().pagination.pageIndex + 1;
+              const pages: (number | "...")[] = [];
+              if (total <= 7) {
+                for (let i = 1; i <= total; i++) pages.push(i);
+              } else {
+                pages.push(1);
+                if (cur > 3) pages.push("...");
+                for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) pages.push(i);
+                if (cur < total - 2) pages.push("...");
+                pages.push(total);
+              }
+              return pages.map((p, i) =>
+                p === "..." ? (
+                  <span key={`e-${i}`} style={{ ...btnPageStyle, border: "none", background: "transparent", color: "#64748B" }}>…</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => table.setPageIndex((p as number) - 1)}
+                    style={{
+                      ...btnPageStyle,
+                      ...(p === cur ? {
+                        background: "linear-gradient(135deg, #1F3D5A 0%, #152a3f 100%)",
+                        color: "#FFFFFF",
+                        borderColor: "#1F3D5A",
+                      } : {}),
+                    }}
+                  >{p}</button>
+                )
+              );
+            })()}
+
+            {/* Next */}
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              style={{ ...btnPageStyle, opacity: !table.getCanNextPage() ? 0.35 : 1 }}
+            >›</button>
+            {/* Last */}
+            <button
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+              style={{ ...btnPageStyle, opacity: !table.getCanNextPage() ? 0.35 : 1 }}
+            >»</button>
+          </div>
+
+          {/* Page size selector */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 140, justifyContent: "flex-end" }}>
+            <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>Rows</span>
+            <select
+              value={table.getState().pagination.pageSize}
+              onChange={(e) => { table.setPageSize(Number(e.target.value)); table.setPageIndex(0); }}
+              style={{
+                padding: "4px 24px 4px 8px", borderRadius: 8,
+                border: "1px solid rgba(200, 169, 107, 0.2)", background: "#FFFFFF",
+                color: "#1F3D5A", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                outline: "none", appearance: "none",
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%231F3D5A' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+                backgroundRepeat: "no-repeat", backgroundPosition: "right 6px center",
+              }}
+            >
+              {[10, 25, 50, 100].map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={btnPageStyle}>Previous</button>
-          <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={btnPageStyle}>Next</button>
-        </div>
-      </div>
+      )}
     </div>
   );
 });
