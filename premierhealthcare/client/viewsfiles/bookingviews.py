@@ -78,7 +78,13 @@ class CreateBookingView(APIView):
                 )
                 guest_user.set_unusable_password()
                 guest_user.save()
-                patient = Patient.objects.create(user=guest_user, phone_number=phone)
+                patient, _ = Patient.objects.get_or_create(
++                 user=guest_user,
++                 defaults={"phone_number": phone},
++                 )
+                if patient.phone_number != phone:
++                     patient.phone_number = phone
++                     patient.save(update_fields=["phone_number"])
                 patient_user = guest_user
 
         # ── Slot conflict check ─────────────────────────────────────────
