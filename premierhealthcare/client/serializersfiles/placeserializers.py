@@ -149,7 +149,7 @@ class BranchSerializer(EntityImageMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Branch
-        fields = ["id", "name", "address", "city", "phone", "latitude", "longitude", "is_active", "image_id", "image_url", "services", "service_names"]
+        fields = ["id", "name", "address", "city", "phone", "url", "is_active", "image_id", "image_url", "services", "service_names"]
         read_only_fields = ["id"]
 
     def get_service_names(self, obj):
