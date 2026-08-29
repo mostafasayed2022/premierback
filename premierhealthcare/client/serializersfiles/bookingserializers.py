@@ -162,6 +162,7 @@ class BookingSerializer(serializers.ModelSerializer):
     doctor = serializers.CharField(source="doctor.user.get_full_name", read_only=True)
     service = serializers.CharField(source="service.name", read_only=True)
     branch = serializers.CharField(source="branch.name", read_only=True)
+    is_guest = serializers.BooleanField(source="patient.user.is_guest", read_only=True)
 
     class Meta:
         model = Booking
@@ -178,4 +179,5 @@ class BookingSerializer(serializers.ModelSerializer):
             "fee",
             "notes",
             "created_at",
+            "is_guest",
         ]
