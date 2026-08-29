@@ -225,7 +225,7 @@ class BookingSchema(AdminSchema):
     endpoint               = "/api/admin/bookings/"
     read_serializer_class  = BookingSerializer        
     write_serializer_class = BookingCreateSerializer  
-    list_display           = ["id", "patient", "doctor", "service", "branch", "date", "status", "fee", "is_guest"]
+    list_display           = [ "patient", "doctor", "service", "branch", "date", "status", "fee", "is_guest"]
     search_fields          = ["patient__user__first_name", "patient__user__last_name", "patient__user__username", "patient__phone_number", "doctor__user__first_name", "doctor__user__last_name", "doctor__user__username", "service__name", "branch__name", "status"]
     ordering               = ["-date"]
     use_explicit_viewset   = True
