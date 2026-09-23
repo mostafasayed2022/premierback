@@ -17,7 +17,7 @@ from .models import (
     Branch, Doctor, Patient, DoctorAvailability,
     Booking, CustomUser, Department, Service,
     GalleryImage, Gallery, GalleryCategory, Testimonial,
-    BranchGallery, OfflineConversion,
+    BranchGallery, OfflineConversion, ContactMessage, SlugRedirect,Article, ArticleCategory,
 )
 from .serializers import (
     BranchSerializer,
@@ -33,6 +33,7 @@ from .serializers import (
     TestimonialSerializer,
     GallerySerializer,
     BranchGallerySerializer,
+
 )                                 
 
 @registry.register
