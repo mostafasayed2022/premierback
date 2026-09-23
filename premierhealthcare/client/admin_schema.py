@@ -333,3 +333,89 @@ class OfflineConversionSchema(AdminSchema):
     list_display           = ["id", "booking", "event_name", "status", "value", "currency", "conversion_time"]
     search_fields          = ["event_name", "status", "gclid", "fbclid", "utm_source", "utm_campaign"]
     ordering               = ["-created_at"]
+
+@registry.register
+class SlugRedirectSchema(AdminSchema):
+    """Admin CRUD schema for slug redirects.
+
+    The public /api/slug-redirect/ endpoint is intentionally GET-only and is
+    used by the website to resolve an old slug. Admin writes must go through
+    the dynamic authenticated CRUD endpoint generated from this schema.
+    """
+    model = SlugRedirect
+    endpoint = "/api/slugredirects/"
+    list_display = ["id", "content_type", "old_slug", "new_slug", "is_active", "created_at"]
+    search_fields = ["old_slug", "new_slug", "content_type"]
+    ordering = ["content_type", "old_slug"]
+
+
+@registry.register
+class ContactMessageSchema(AdminSchema):
+    """Admin CRUD schema for messages submitted through the public contact form."""
+    model = ContactMessage
+    endpoint = "/api/contactmessages/"
+    list_display = ["id", "name", "email", "phone", "branch", "message", "created_at"]
+    search_fields = ["name", "email", "phone", "branch", "message"]
+    ordering = ["-created_at"]
+
+
+@registry.register
+class ArticleCategorySchema(AdminSchema):
+    """
+    Admin CRUD for article categories.
+    Endpoint: /api/article-categories/
+    """
+    model        = ArticleCategory
+    endpoint     = "/api/article-categories/"
+    list_display = ["id", "name", "name_ar", "slug", "is_active"]
+    search_fields = ["name", "slug"]
+    ordering     = ["name"]
+
+
+@registry.register
+class ArticleSchema(AdminSchema):
+    """
+    Admin CRUD for articles.
+
+    IMPORTANT: endpoint is /api/admin-articles/ — NOT /api/articles/.
+    The public read endpoint (ArticleDetailView at /api/articles/<slug>/)
+    is kept intact. Using a different prefix avoids the URL ordering
+    collision where client.urls shadows the dynamic router.
+
+    React Admin / Nexus Admin must point the articles resource to
+    /api/admin-articles/ (not /api/articles/).
+    """
+    model                  = Article
+    endpoint               = "/api/admin-articles/"
+    read_serializer_class  = ArticleAdminSerializer
+    write_serializer_class = ArticleWriteSerializer
+    list_display           = [
+        "id", "title", "slug", "category", "is_published",
+        "published_at", "created_at",
+    ]
+    search_fields = ["title", "slug", "excerpt", "content", "author_name"]
+    ordering      = ["-created_at"]
+    # Exclude the actual FK objects; the serializer accepts integer IDs directly
+    exclude       = ["cover_image", "og_image"]
+
+    @classmethod
+    def get_fields(cls) -> list:
+        fields = super().get_fields()
+        for f in fields:
+            if f.name in ("cover_image", "og_image"):
+                # These are excluded above; the write serializer uses FK IDs
+                pass
+            elif f.name == "category":
+                f.type            = "relation"
+                f.related_endpoint = "/api/article-categories/"
+                f.required        = False
+            elif f.name == "author_doctor":
+                f.type            = "relation"
+                f.related_endpoint = "/api/doctors/"
+                f.required        = False
+            elif f.name == "related_articles":
+                f.type            = "relation"
+                f.multiple        = True
+                f.related_endpoint = "/api/admin-articles/"
+                f.required        = False
+        return fields
