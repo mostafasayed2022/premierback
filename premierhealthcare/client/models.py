@@ -761,7 +761,7 @@ class Article(models.Model):
     author_name_ar = models.CharField(max_length=200, blank=True, default="")
     published_at = models.DateTimeField(null=True, blank=True)
     reading_time_minutes = models.PositiveIntegerField(default=5)
-    related_articles = models.ManyToManyField("self", blank=True, symmetrical=False, related_name="related_to")
+    related_articles = models.ManyToManyField("self", blank=True, null=True ,symmetrical=False, related_name="related_to")
     meta_title = models.CharField(max_length=255, blank=True, null=True)
     meta_title_ar = models.CharField(max_length=255, blank=True, null=True)
     meta_description = models.TextField(blank=True, null=True)
