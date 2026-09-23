@@ -12,6 +12,15 @@ router.register(r"users", AdminUserViewSet, basename="admin-user")
 
 # ─── URL patterns ─────────────────────────────────────────────────────────────
 urlpatterns = [
+    path("contact/", ContactMessageView.as_view(), name="contact-message"),
+    # ── New CMS add-ons ───────────────────────────────────────────────────────
+    path("iv-drip-therapy/", IVDripPageView.as_view(), name="iv-drip-therapy-page"),
+    path("iv-drip-therapy/<slug:slug>/", IVDripProductDetailView.as_view(), name="iv-drip-therapy-detail"),
+    path("articles/", ArticleListView.as_view(), name="articles-list"),
+    path("articles/categories/", ArticleCategoryListView.as_view(), name="article-categories"),
+    path("articles/<slug:slug>/", ArticleDetailView.as_view(), name="article-detail"),
+    path("slug-redirect/", SlugRedirectView.as_view(), name="slug-redirect"),
+
     # ── Auth ──────────────────────────────────────────────────────────────────
     path("token/",         RoleTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(),        name="token_refresh"),
