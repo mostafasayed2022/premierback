@@ -594,3 +594,241 @@ class BranchGallery(models.Model):
 
     def __str__(self):
         return f"{self.branch.name} - {self.title or self.id}"
+# ─── New CMS Content Add-ons ──────────────────────────────────────────────────
+
+class IVDripPage(models.Model):
+    """Singleton content for the public IV Drip Therapy landing page."""
+    key = models.CharField(max_length=50, unique=True, default="default", editable=False)
+    hero_image = models.ForeignKey(
+        File, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="iv_drip_page_heroes"
+    )
+    title = models.CharField(max_length=200)
+    title_ar = models.CharField(max_length=200, blank=True, default="")
+    short_description = models.TextField(blank=True, default="")
+    short_description_ar = models.TextField(blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "IV Drip Therapy Page"
+
+
+class IVBenefit(models.Model):
+    icon = models.CharField(max_length=255, blank=True, default="")
+    title = models.CharField(max_length=200)
+    title_ar = models.CharField(max_length=200, blank=True, default="")
+    description = models.TextField(blank=True, default="")
+    description_ar = models.TextField(blank=True, default="")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.title
+
+
+class IVAdministrationStep(models.Model):
+    step_number = models.PositiveIntegerField(default=1)
+    icon = models.CharField(max_length=255, blank=True, null=True)
+    title = models.CharField(max_length=200)
+    title_ar = models.CharField(max_length=200, blank=True, default="")
+    description = models.TextField(blank=True, default="")
+    description_ar = models.TextField(blank=True, default="")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["step_number", "id"]
+
+    def __str__(self):
+        return f"Step {self.step_number}: {self.title}"
+
+
+class IVDripProduct(models.Model):
+    name = models.CharField(max_length=200)
+    name_ar = models.CharField(max_length=200, blank=True, default="")
+    slug = models.SlugField(max_length=220, unique=True)
+    who_is_it_for = models.TextField(blank=True, default="")
+    how_it_helps = models.TextField(blank=True, default="")
+    key_ingredients = models.TextField(blank=True, default="")
+    perfect_pairings = models.TextField(blank=True, default="")
+    tagline = models.CharField(max_length=300, blank=True, default="")
+    tagline_ar = models.CharField(max_length=300, blank=True, default="")
+    short_description = models.TextField(blank=True, default="")
+    short_description_ar = models.TextField(blank=True, default="")
+    full_description = models.TextField(blank=True, default="", help_text="Rich HTML content")
+    full_description_ar = models.TextField(blank=True, default="", help_text="Rich HTML content")
+    image = models.ForeignKey(
+        File, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="iv_drip_products"
+    )
+    price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    duration_minutes = models.PositiveIntegerField(default=45)
+    is_featured = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    meta_title = models.CharField(max_length=255, blank=True, null=True)
+    meta_title_ar = models.CharField(max_length=255, blank=True, null=True)
+    meta_description = models.TextField(blank=True, null=True)
+    meta_description_ar = models.TextField(blank=True, null=True)
+    og_image = models.ForeignKey(
+        File, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="iv_drip_product_og_images"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.name
+
+
+class IVDripFAQ(models.Model):
+    product = models.ForeignKey(IVDripProduct, on_delete=models.CASCADE, related_name="faqs")
+    question = models.CharField(max_length=300)
+    question_ar = models.CharField(max_length=300, blank=True, default="")
+    answer = models.TextField(blank=True, default="")
+    answer_ar = models.TextField(blank=True, default="")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.question
+
+
+class ArticlesPage(models.Model):
+    """Singleton editorial content for the articles landing page."""
+    key = models.CharField(max_length=50, unique=True, default="default", editable=False)
+    title = models.CharField(max_length=200)
+    short_description = models.TextField(blank=True, default="")
+    hero_image = models.ForeignKey(File, on_delete=models.SET_NULL, null=True, blank=True, related_name="articles_page_heroes")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Articles Page"
+        verbose_name_plural = "Articles Page"
+
+    def __str__(self):
+        return "Articles Page"
+
+
+class ArticleCategory(models.Model):
+    name = models.CharField(max_length=150)
+    name_ar = models.CharField(max_length=150, blank=True, default="")
+    slug = models.SlugField(max_length=180, unique=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Article(models.Model):
+    class AuthorType(models.TextChoices):
+        PLAIN = "plain", "Plain"
+        DOCTOR = "doctor", "Doctor"
+
+    title = models.CharField(max_length=255)
+    title_ar = models.CharField(max_length=255, blank=True, default="")
+    slug = models.SlugField(max_length=280, unique=True)
+    category = models.ForeignKey(
+        ArticleCategory, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="articles"
+    )
+    tags = models.JSONField(default=list, blank=True)
+    excerpt = models.TextField(blank=True, default="")
+    excerpt_ar = models.TextField(blank=True, default="")
+    content = models.TextField(blank=True, default="", help_text="Rich HTML content")
+    content_ar = models.TextField(blank=True, default="", help_text="Rich HTML content")
+    cover_image = models.ForeignKey(
+        File, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="article_covers"
+    )
+    author_type = models.CharField(max_length=10, choices=AuthorType.choices, default=AuthorType.PLAIN)
+    author_doctor = models.ForeignKey(
+        Doctor, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="articles"
+    )
+    author_name = models.CharField(max_length=200, blank=True, default="")
+    author_name_ar = models.CharField(max_length=200, blank=True, default="")
+    published_at = models.DateTimeField(null=True, blank=True)
+    reading_time_minutes = models.PositiveIntegerField(default=5)
+    related_articles = models.ManyToManyField("self", blank=True, symmetrical=False, related_name="related_to")
+    meta_title = models.CharField(max_length=255, blank=True, null=True)
+    meta_title_ar = models.CharField(max_length=255, blank=True, null=True)
+    meta_description = models.TextField(blank=True, null=True)
+    meta_description_ar = models.TextField(blank=True, null=True)
+    og_image = models.ForeignKey(
+        File, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="article_og_images"
+    )
+    is_published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-published_at", "-created_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class SlugRedirect(models.Model):
+    class ContentType(models.TextChoices):
+        IV_DRIP_PRODUCT = "ivdripproduct", "IV Drip Product"
+        ARTICLE = "article", "Article"
+
+    content_type = models.CharField(max_length=20, choices=ContentType.choices)
+    old_slug = models.SlugField(max_length=280)
+    new_slug = models.SlugField(max_length=280)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["content_type", "old_slug"],
+                name="unique_slug_redirect_source",
+            )
+        ]
+        ordering = ["content_type", "old_slug"]
+
+    def __str__(self):
+        return f"{self.content_type}: {self.old_slug} → {self.new_slug}"
+
+
+class ContactMessage(models.Model):
+    name = models.CharField(max_length=150)
+    email = models.EmailField()
+    phone = models.CharField(max_length=30)
+    branch = models.CharField(max_length=150, blank=True)
+    message = models.TextField(max_length=5000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class ContentTranslation(models.Model):
+    """Generated public-content translations; never a dashboard input form."""
+    source_hash = models.CharField(max_length=64)
+    source_text = models.TextField()
+    target_language = models.CharField(max_length=2)
+    text_format = models.CharField(max_length=4, default="text")
+    translated_text = models.TextField(blank=True)
+    status = models.CharField(max_length=10, default="pending")
+    attempts = models.PositiveIntegerField(default=0)
+    last_error = models.CharField(max_length=250, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["source_hash", "target_language"], name="unique_content_translation")]
+        indexes = [models.Index(fields=["status", "updated_at"], name="translation_queue_idx")]
