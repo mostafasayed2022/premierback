@@ -156,6 +156,8 @@ class SchemaRegistry:
                 continue
 
             for model in app_config.get_models():
+                if model.__name__ == "ContentTranslation":
+                    continue
                 qualified_name = self._qualified_name(model)
 
                 # Skip models already registered (explicit schemas win —
