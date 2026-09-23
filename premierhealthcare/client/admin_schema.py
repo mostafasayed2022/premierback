@@ -398,10 +398,10 @@ class ArticleSchema(AdminSchema):
         "id", "title", "slug", "category", "is_published",
         "published_at", "created_at",
     ]
-    search_fields = ["title", "slug", "excerpt", "content", "author_name"]
+    search_fields = ["title", "slug", "excerpt", "content", "author_name","cover_image", "og_image"]
     ordering      = ["-created_at"]
     # Exclude the actual FK objects; the serializer accepts integer IDs directly
-    exclude       = ["cover_image", "og_image"]
+    exclude       = []
 
     @classmethod
     def get_fields(cls) -> list:
