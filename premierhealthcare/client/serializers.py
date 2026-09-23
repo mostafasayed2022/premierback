@@ -284,7 +284,7 @@ class ArticleSummarySerializer(serializers.ModelSerializer):
 class ArticleDetailSerializer(ArticleSummarySerializer):
     content = serializers.CharField()
     content_ar = serializers.CharField()
-    relatedArticles = serializers.SerializerMethodField()
+    # relatedArticles = serializers.SerializerMethodField()
     metaTitle = serializers.CharField(source="meta_title", allow_null=True)
     metaTitle_ar = serializers.CharField(source="meta_title_ar", allow_null=True)
     metaDescription = serializers.CharField(source="meta_description", allow_null=True)
@@ -293,13 +293,13 @@ class ArticleDetailSerializer(ArticleSummarySerializer):
 
     class Meta(ArticleSummarySerializer.Meta):
         fields = ArticleSummarySerializer.Meta.fields + [
-            "content", "content_ar", "relatedArticles",
+            "content", "content_ar", 
             "metaTitle", "metaTitle_ar", "metaDescription", "metaDescription_ar", "ogImage",
         ]
 
-    def get_relatedArticles(self, obj):
-        related = obj.related_articles.filter(is_published=True)[:3]
-        return ArticleSummarySerializer(related, many=True, context=self.context).data
+    # def get_relatedArticles(self, obj):
+    #     related = obj.related_articles.filter(is_published=True)[:3]
+    #     return ArticleSummarySerializer(related, many=True, context=self.context).data
 
     def get_ogImage(self, obj):
         return _absolute_file_url(obj.og_image, self.context.get("request"))
@@ -362,7 +362,7 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
             "author_name", "author_name_ar",
             "published_at",
             "reading_time_minutes",
-            "related_articles",       # M2M → accepts list of integer PKs
+            # "related_articles",       # M2M → accepts list of integer PKs
             "meta_title", "meta_title_ar",
             "meta_description", "meta_description_ar",
             "is_published",
