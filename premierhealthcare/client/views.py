@@ -445,3 +445,138 @@ class DoctorBookingRescheduleView(APIView):
             )
 
         return Response(DoctorProfileBookingSerializer(booking).data, status=status.HTTP_200_OK)
+
+
+# ─── New public CMS add-on endpoints ──────────────────────────────────────────
+
+class IVDripPageView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        page = IVDripPage.objects.order_by("id").first()
+        if not page:
+            return Response(
+                {"detail": "IV Drip Therapy content has not been configured yet."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        data = {
+            "page": IVDripPageSerializer(page, context={"request": request}).data,
+            "benefits": IVBenefitPublicSerializer(
+                IVBenefit.objects.filter(is_active=True), many=True
+            ).data,
+            "administrationSteps": IVAdministrationStepPublicSerializer(
+                IVAdministrationStep.objects.filter(is_active=True), many=True
+            ).data,
+            "products": IVDripProductSummarySerializer(
+                IVDripProduct.objects.filter(is_active=True), many=True, context={"request": request}
+            ).data,
+        }
+        return Response(data)
+
+
+class IVDripProductDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, slug):
+        product = get_object_or_404(IVDripProduct, slug=slug, is_active=True)
+        return Response(IVDripProductDetailSerializer(product, context={"request": request}).data)
+
+
+class ArticleListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        qs = Article.objects.filter(is_published=True).select_related(
+            "category", "author_doctor__user", "cover_image", "og_image"
+        )
+        category = (request.query_params.get("category") or "").strip()
+        tag = (request.query_params.get("tag") or "").strip().lower()
+        if category:
+            qs = qs.filter(category__slug=category)
+        if tag:
+            qs = [a for a in qs if any(str(t).lower() == tag for t in (a.tags or []))]
+        page = max(int(request.query_params.get("page", 1) or 1), 1)
+        page_size = min(max(int(request.query_params.get("page_size", 12) or 12), 1), 100)
+        total = len(qs) if isinstance(qs, list) else qs.count()
+        items = qs[(page - 1) * page_size: page * page_size]
+        results = ArticleSummarySerializer(items, many=True, context={"request": request}).data
+        base = f"?page={{}}&page_size={page_size}"
+        landing = ArticlesPage.objects.filter(key="default").first()
+        return Response({
+            "page": ArticlesPageSerializer(landing, context={"request": request}).data if landing else None,
+            "count": total,
+            "next": base.format(page + 1) if page * page_size < total else None,
+            "previous": base.format(page - 1) if page > 1 else None,
+            "results": results,
+        })
+
+
+class ArticleDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, slug):
+        article = get_object_or_404(
+            Article.objects.select_related("category", "author_doctor__user", "cover_image", "og_image"),
+            slug=slug,
+            is_published=True,
+        )
+        return Response(ArticleDetailSerializer(article, context={"request": request}).data)
+
+
+class ArticleCategoryListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        qs = ArticleCategory.objects.filter(is_active=True)
+        return Response(ArticleCategoryPublicSerializer(qs, many=True).data)
+
+
+class SlugRedirectView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        old_slug = (request.query_params.get("old_slug") or "").strip()
+        content_type = (request.query_params.get("content_type") or "").strip()
+        if not old_slug or content_type not in {"ivdripproduct", "article"}:
+            return Response({"detail": "old_slug and a valid content_type are required."}, status=status.HTTP_400_BAD_REQUEST)
+        redirect_obj = SlugRedirect.objects.filter(
+            old_slug=old_slug, content_type=content_type, is_active=True
+        ).first()
+        if not redirect_obj:
+            return Response({"detail": "Redirect not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"newSlug": redirect_obj.new_slug, "contentType": redirect_obj.content_type})
+
+
+class CancelBookingView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request, booking_id):
+        if getattr(request.user, "role", None) != Role.PATIENT:
+            return Response({"detail": "Only patients can cancel bookings."}, status=status.HTTP_403_FORBIDDEN)
+        patient = getattr(request.user, "patient_profile", None)
+        if patient is None:
+            return Response({"detail": "Patient profile not found."}, status=status.HTTP_400_BAD_REQUEST)
+        booking = get_object_or_404(Booking.objects.select_for_update(), id=booking_id, patient=patient)
+        if booking.status not in (BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED, BookingStatus.PENDING):
+            return Response({"detail": f"Booking cannot be cancelled while it is '{booking.status}'."}, status=status.HTTP_400_BAD_REQUEST)
+        booking.status = BookingStatus.CANCELLED
+        booking.save(update_fields=["status", "updated_at"])
+        return Response({"detail": "Booking cancelled successfully.", "booking": BookingSerializer(booking).data}, status=status.HTTP_200_OK)
+
+
+class ContactMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactMessage
+        fields = ['name', 'email', 'phone', 'branch', 'message']
+
+
+class ContactMessageView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = ContactMessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'detail': 'Message saved.'}, status=201)
