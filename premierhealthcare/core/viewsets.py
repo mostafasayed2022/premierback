@@ -1,13 +1,3 @@
-"""
-Base ViewSet that all admin resource ViewSets inherit from.
-
-Provides:
-- JWT authentication enforcement
-- IsAdminUser permission
-- Standardized error responses
-- Full exception logging (both DRF and non-DRF exceptions)
-- Audit logging hooks (pre/post save)
-"""
 import logging
 
 from rest_framework import viewsets, status
@@ -21,10 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class AdminModelViewSet(viewsets.ModelViewSet):
-    """
-    Drop-in replacement for ModelViewSet with admin-level auth enforced.
-    All resource viewsets inherit from this.
-    """
+
     authentication_classes = [JWTAuthentication]
     permission_classes     = [IsAdminUser]
     filter_backends        = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -32,6 +19,16 @@ class AdminModelViewSet(viewsets.ModelViewSet):
     ordering_fields: list[str] = "__all__"
     ordering:        list[str] = ["-id"]
     
+
+    def get_serializer(self, *args, **kwargs):
+        from core.content_translation import is_translation_field
+        serializer = super().get_serializer(*args, **kwargs)
+        target = serializer.child if hasattr(serializer, "child") else serializer
+        for name, field in target.fields.items():
+            if is_translation_field(name):
+                field.read_only = True
+                field.required = False
+        return serializer
 
     # ── CRUD hooks ────────────────────────────────────────────────────────────
 
@@ -65,23 +62,7 @@ class AdminModelViewSet(viewsets.ModelViewSet):
     # ── Error handling ────────────────────────────────────────────────────────
 
     def handle_exception(self, exc):
-        """
-        Two-layer exception handling:
 
-        Layer 1 — DRF exceptions (ValidationError, NotFound, PermissionDenied,
-          AuthenticationFailed, etc.): super().handle_exception() converts these
-          to Response objects. Logged at WARNING level.
-
-        Layer 2 — Non-DRF exceptions (AttributeError, TypeError, ValueError,
-          database errors, etc.): super() re-raises these; we catch them here,
-          log at ERROR level with full traceback, then re-raise so Django's
-          global error handler (500 page / Sentry / etc.) can take over.
-          In DEBUG mode this surfaces the traceback in the browser. In production
-          it returns a 500 — which is correct; don't swallow unexpected errors.
-
-        BUG WAS: non-DRF exceptions were re-raised by super() and never logged,
-        making silent 500s with no trace in the admin log.
-        """
         try:
             response = super().handle_exception(exc)
         except Exception:
