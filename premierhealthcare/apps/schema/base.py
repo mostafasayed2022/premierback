@@ -374,7 +374,20 @@ class AdminSchema:
 
     @classmethod
     def to_dict(cls) -> dict:
-        fields = cls.get_fields()
+        from core.content_translation import is_translation_field, CONTENT_FIELDS
+        from copy import deepcopy
+        fields = deepcopy(cls.get_fields())
+        fields = [f for f in fields if not is_translation_field(f.name)]
+        english_fields = CONTENT_FIELDS.get(cls.model.__name__ if cls.model else "", ())
+        def clean_nested(items):
+            return [{**item, "nested_fields": clean_nested(item.get("nested_fields", []))}
+                    for item in items if not is_translation_field(item["name"])]
+        for f in fields:
+            f.nested_fields = clean_nested(f.nested_fields)
+            if f.name in english_fields:
+                f.label = f.name.replace("_", " ").title() + " (EN)"
+                f.help_text = "Enter English. Translations are generated automatically and stored for the website."
+
         list_fields = [f.name for f in fields if f.show_in_list] or [f.name for f in fields]
         return {
             "name": cls.get_name(),
