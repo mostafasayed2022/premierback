@@ -85,10 +85,14 @@ class ServiceListView(APIView):
 
     def get(self, request):
         services = Service.objects.all()
+        
+        # Filter by department
+        department = request.query_params.get('department', '').strip()
+        if department:
+            services = services.filter(department__slug=department)
+        
         serializer = ServicepublicSerializer(services, many=True)
-
         return Response(serializer.data)
-
 
 class ServiceDetailView(APIView):
 
