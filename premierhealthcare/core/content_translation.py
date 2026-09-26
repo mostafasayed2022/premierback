@@ -1,38 +1,13 @@
 """English CMS source, durable translation queue, cached public API localization."""
 import hashlib
 import re
+import threading
 from django.apps import apps
 from django.conf import settings
-from django.db import transaction
 from django.utils import timezone
 import requests
-# core/content_translation.py
 
-import threading
-_translate_lock = threading.Lock()
-
-def _drain_queue():
-    if not _translate_lock.acquire(blocking=False):
-        return  # already running, skip
-    try:
-        translate_pending(limit=100)
-    finally:
-        _translate_lock.release()
-
-def localize_payload(payload, locale):
-    ...
-    queue_texts(texts)
-    cached = dict(model().objects.filter(..., status="ready").values_list(...))
-    missing = 0
-    ...
-    result, missing = walk(payload), missing
-    
-    if missing:
-        threading.Thread(target=_drain_queue, daemon=True).start()
-    
-    return result, missing
 LANGUAGES = ("en", "ar", "fr", "de", "es", "it", "tr", "ru")
-# Only public editorial models are eligible. Patient records/contact messages are excluded.
 CONTENT_FIELDS = {
     "Department": ("name", "description"),
     "Service": ("name", "description"),
@@ -50,7 +25,6 @@ CONTENT_FIELDS = {
     "ArticleCategory": ("name",),
     "Article": ("title", "excerpt", "content", "tags", "meta_title", "meta_description"),
 }
-# Public response keys only; IDs, slugs, URLs, prices, dates, codes stay unchanged.
 PUBLIC_TEXT_KEYS = {
     "whoIsItFor", "howItHelps", "keyIngredients", "perfectPairings",
     "name", "title", "description", "shortDescription", "short_description",
@@ -66,6 +40,8 @@ PUBLIC_ROUTES = {
     "doctor-details", "services", "service-detail", "service-detail-legacy",
     "gallery-list", "branch-gallery-public-list", "testimonial-public-list",
 }
+
+_translate_lock = threading.Lock()
 
 
 def is_translation_field(name):
@@ -86,10 +62,22 @@ def fingerprint(text):
 
 def queue_texts(texts, languages=LANGUAGES[1:]):
     values = {text for text in texts if isinstance(text, str) and text.strip()}
-    existing = set(model().objects.filter(source_hash__in=[fingerprint(t) for t in values]).values_list("source_hash", "target_language"))
-    rows = [model()(source_hash=fingerprint(text), source_text=text, text_format=text_format(text), target_language=lang)
-            for text in values for lang in languages if lang in LANGUAGES and lang != "en" and (fingerprint(text), lang) not in existing]
-    model().objects.bulk_create(rows, ignore_conflicts=True)
+    if not values:
+        return
+    # Fix 5: compute fingerprints once, reuse; one model() call
+    fps = {text: fingerprint(text) for text in values}
+    M = model()
+    existing = set(
+        M.objects.filter(source_hash__in=fps.values())
+        .values_list("source_hash", "target_language")
+    )
+    rows = [
+        M(source_hash=fps[text], source_text=text, text_format=text_format(text), target_language=lang)
+        for text in values
+        for lang in languages
+        if lang in LANGUAGES and lang != "en" and (fps[text], lang) not in existing
+    ]
+    M.objects.bulk_create(rows, ignore_conflicts=True)
 
 
 def queue_instance(instance):
@@ -114,44 +102,80 @@ def locale_from_header(header):
     return max(choices)[2] if choices else "en"
 
 
+def _drain_queue():
+    if not _translate_lock.acquire(blocking=False):
+        return
+    try:
+        translate_pending(limit=100)
+    finally:
+        _translate_lock.release()
+
+
 def localize_payload(payload, locale):
     """One cache query per response. No network translation during page requests."""
     texts = set()
+
     def collect(value):
         if isinstance(value, dict):
             for key, item in value.items():
-                if key in PUBLIC_TEXT_KEYS and isinstance(item, str) and item.strip(): texts.add(item)
+                if key in PUBLIC_TEXT_KEYS and isinstance(item, str) and item.strip():
+                    texts.add(item)
                 elif key in PUBLIC_TEXT_KEYS and isinstance(item, list):
                     texts.update(x for x in item if isinstance(x, str) and x.strip())
-                if isinstance(item, (dict, list)): collect(item)
+                if isinstance(item, (dict, list)):
+                    collect(item)
         elif isinstance(value, list):
-            for item in value: collect(item)
+            for item in value:
+                collect(item)
+
     collect(payload)
     if locale == "en" or not texts:
         return payload, 0
-    queue_texts(texts)  # Includes computed public labels missed by model signals.
-    cached = dict(model().objects.filter(source_hash__in=[fingerprint(t) for t in texts],
-                  target_language=locale, status="ready").values_list("source_hash", "translated_text"))
+
+    queue_texts(texts)
+    cached = dict(
+        model().objects.filter(
+            source_hash__in=[fingerprint(t) for t in texts],
+            target_language=locale,
+            status="ready",
+        ).values_list("source_hash", "translated_text")
+    )
     missing = 0
+
     def translated(text):
         nonlocal missing
-        if not text.strip(): return text
+        if not text.strip():
+            return text
         result = cached.get(fingerprint(text))
-        if result: return result
+        if result:
+            return result
         missing += 1
         return text
+
     def walk(value):
-        if isinstance(value, list): return [walk(x) for x in value]
-        if not isinstance(value, dict): return value
+        if isinstance(value, list):
+            return [walk(x) for x in value]
+        if not isinstance(value, dict):
+            return value
         result = {key: walk(item) for key, item in value.items()}
         for key, item in value.items():
             if key in PUBLIC_TEXT_KEYS and isinstance(item, str):
                 result[key] = translated(item)
-                if locale == "ar": result[key + "_ar"] = result[key]
+                # Fix 2: only fill _ar if not already present with content
+                ar_key = key + "_ar"
+                if locale == "ar" and not result.get(ar_key):
+                    result[ar_key] = result[key]
             elif key in PUBLIC_TEXT_KEYS and isinstance(item, list):
                 result[key] = [translated(x) if isinstance(x, str) else walk(x) for x in item]
         return result
-    return walk(payload), missing
+
+    result = walk(payload)
+
+    # Fix 3: background drain instead of Celery beat
+    if missing:
+        threading.Thread(target=_drain_queue, daemon=True).start()
+
+    return result, missing
 
 
 def translate_pending(limit=50):
@@ -159,40 +183,48 @@ def translate_pending(limit=50):
     from datetime import timedelta
     from django.db.models import Q
     retry_before = timezone.now() - timedelta(seconds=60)
-    jobs = model().objects.filter(Q(status="pending") | Q(status="error", updated_at__lt=retry_before)).order_by("id")[:limit]
+    jobs = model().objects.filter(
+        Q(status="pending") | Q(status="error", updated_at__lt=retry_before)
+    ).order_by("id")[:limit]
     successes = failures = 0
     for job in jobs:
         try:
             url = settings.CONTENT_TRANSLATION_URL.rstrip("/") + "/translate"
             body = {"q": job.source_text, "source": "en", "target": job.target_language, "format": job.text_format}
             key = getattr(settings, "CONTENT_TRANSLATION_API_KEY", "")
-            if key: body["api_key"] = key
+            if key:
+                body["api_key"] = key
             response = requests.post(url, json=body, timeout=(3, 60))
             response.raise_for_status()
             translated = response.json().get("translatedText")
             if not isinstance(translated, str) or not translated.strip():
                 raise ValueError("Provider returned an empty or invalid translation")
-            # Only the English source's HTML structure may be rendered. Translate text
-            # nodes individually for HTML below rather than trusting generated markup.
             if job.text_format == "html":
                 from bs4 import BeautifulSoup, Comment
                 source = BeautifulSoup(job.source_text, "html.parser")
                 target = BeautifulSoup(translated, "html.parser")
                 src_nodes = [n for n in source.find_all(string=True) if not isinstance(n, Comment) and n.parent.name not in ("script", "style") and n.strip()]
                 dst_nodes = [n for n in target.find_all(string=True) if not isinstance(n, Comment) and n.parent.name not in ("script", "style") and n.strip()]
-                if len(src_nodes) != len(dst_nodes): raise ValueError("Translated HTML structure differs; translation retained for retry")
-                for src_node, dst_node in zip(src_nodes, dst_nodes): src_node.replace_with(str(dst_node))
+                if len(src_nodes) != len(dst_nodes):
+                    raise ValueError("Translated HTML structure differs")
+                for src_node, dst_node in zip(src_nodes, dst_nodes):
+                    src_node.replace_with(str(dst_node))
                 translated = str(source)
             job.translated_text = translated
             job.status = "ready"
             job.last_error = ""
             successes += 1
-        except (requests.RequestException, ValueError, TypeError, AttributeError) as error:
+        # Fix 4: split transport vs content errors
+        except requests.RequestException as error:
             job.status = "error"
-            # Never retain provider URLs/keys or content in error messages.
             job.last_error = type(error).__name__
-            failures += 1
+            failures += 1  # service down — stop the batch
+        except (ValueError, TypeError, AttributeError) as error:
+            job.status = "error"
+            job.last_error = type(error).__name__
+            # content error — service still up, keep going
         job.attempts += 1
         job.save(update_fields=["translated_text", "status", "last_error", "attempts", "updated_at"])
-        if failures: break  # Avoid waiting once per language when the service is offline.
+        if failures:
+            break
     return successes, failures
