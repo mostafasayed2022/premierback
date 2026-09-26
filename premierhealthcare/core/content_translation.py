@@ -6,7 +6,31 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 import requests
+# core/content_translation.py
 
+import threading
+_translate_lock = threading.Lock()
+
+def _drain_queue():
+    if not _translate_lock.acquire(blocking=False):
+        return  # already running, skip
+    try:
+        translate_pending(limit=100)
+    finally:
+        _translate_lock.release()
+
+def localize_payload(payload, locale):
+    ...
+    queue_texts(texts)
+    cached = dict(model().objects.filter(..., status="ready").values_list(...))
+    missing = 0
+    ...
+    result, missing = walk(payload), missing
+    
+    if missing:
+        threading.Thread(target=_drain_queue, daemon=True).start()
+    
+    return result, missing
 LANGUAGES = ("en", "ar", "fr", "de", "es", "it", "tr", "ru")
 # Only public editorial models are eligible. Patient records/contact messages are excluded.
 CONTENT_FIELDS = {
