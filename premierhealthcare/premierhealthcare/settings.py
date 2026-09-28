@@ -23,7 +23,8 @@ ALLOWED_HOSTS = [
     'premierhealthclinics.com',
     'www.premierhealthclinics.com',
     'api.premierhealthclinics.com',
-
+    '127.0.0.1',
+    'localhost',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
