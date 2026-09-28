@@ -1,10 +1,33 @@
-
-import threading
 from django.apps import apps
-from core.content_translation import LANGUAGES, fingerprint, queue_texts, _drain_queue
+
+from core.content_translation import (
+    LANGUAGES,
+    fingerprint,
+    queue_texts,
+    _drain_queue,
+    locale_from_header,
+)
 
 
 class TranslatableSerializerMixin:
+    """
+    Public API translation layer.
+
+    English is the source language.
+
+    Language priority:
+        1. ?lang=xx
+        2. Accept-Language: xx
+
+    Translation behavior:
+        - English: return database content directly.
+        - Arabic: use manually stored *_ar when available.
+        - Missing translation: queue it.
+        - Ready translation: return immediately.
+        - Missing translation: return English for this request,
+          then translate it in the background.
+    """
+
     translatable_fields: list[str] = []
     source_language: str = "en"
 
@@ -14,87 +37,244 @@ class TranslatableSerializerMixin:
         if not request:
             return self.source_language
 
-    # Explicit query parameter wins.
-        lang = (request.query_params.get("lang") or "").lower().strip()
+        # ---------------------------------------------------------------
+        # 1. Explicit ?lang=xx
+        # ---------------------------------------------------------------
+        lang = (
+            request.query_params.get("lang")
+            or ""
+        ).strip().lower()
 
-    # Frontend currently sends Accept-Language.
+        # ---------------------------------------------------------------
+        # 2. Frontend Accept-Language
+        # ---------------------------------------------------------------
         if not lang:
-            header = request.headers.get("Accept-Language", "")
-            lang = header.split(",")[0].strip().lower()
+            lang = locale_from_header(
+                request.headers.get(
+                    "Accept-Language",
+                    "",
+                )
+            )
 
-    # Normalize values such as ar-EG -> ar
-            lang = lang.split("-")[0].strip()
+        # ar-EG -> ar
+        lang = lang.split("-")[0].strip()
 
-        return lang if lang in LANGUAGES else self.source_language
+        if lang not in LANGUAGES:
+            return self.source_language
+
+        return lang
+
+    @staticmethod
+    def arabic_key(field_name: str) -> str:
+        """
+        Convert:
+            title           -> title_ar
+            shortDescription -> shortDescription_ar
+            metaTitle       -> metaTitle_ar
+        """
+        return f"{field_name}_ar"
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+
         lang = self.get_language()
+
+        # English = source language, nothing to translate.
         if lang == self.source_language:
             return data
 
-        M = apps.get_model("client", "ContentTranslation")
-        str_fields: dict[str, str] = {}
-        list_fields: dict[str, list] = {}
+        Translation = apps.get_model(
+            "client",
+            "ContentTranslation",
+        )
+
+        string_fields: dict[str, str] = {}
+        list_fields: dict[str, list[str]] = {}
+
+        # ===============================================================
+        # Collect fields that need translation
+        # ===============================================================
 
         for field_name in self.translatable_fields:
             value = data.get(field_name)
 
+            # -----------------------------------------------------------
+            # Arabic manually curated content wins.
+            # Example:
+            # title_ar
+            # description_ar
+            # content_ar
+            # -----------------------------------------------------------
             if lang == "ar":
-                curated = data.get(field_name + "_ar")
-                if curated and isinstance(curated, str) and curated.strip():
+                arabic_key = self.arabic_key(
+                    field_name
+                )
+
+                curated = data.get(
+                    arabic_key
+                )
+
+                if (
+                    isinstance(curated, str)
+                    and curated.strip()
+                ):
                     data[field_name] = curated
                     continue
 
-            if isinstance(value, str) and value.strip():
-                str_fields[field_name] = value
-            elif isinstance(value, list):
-                texts = [x for x in value if isinstance(x, str) and x.strip()]
-                if texts:
-                    list_fields[field_name] = texts
+            # -----------------------------------------------------------
+            # Normal string
+            # -----------------------------------------------------------
+            if (
+                isinstance(value, str)
+                and value.strip()
+            ):
+                string_fields[field_name] = value
 
-        all_texts = list(str_fields.values()) + [
-            t for ts in list_fields.values() for t in ts
-        ]
+            # -----------------------------------------------------------
+            # JSON/list field
+            # Example: tags / languages
+            # -----------------------------------------------------------
+            elif isinstance(value, list):
+                values = [
+                    item
+                    for item in value
+                    if (
+                        isinstance(item, str)
+                        and item.strip()
+                    )
+                ]
+
+                if values:
+                    list_fields[field_name] = values
+
+        all_texts = (
+            list(string_fields.values())
+            + [
+                item
+                for values in list_fields.values()
+                for item in values
+            ]
+        )
+
         if not all_texts:
             return data
 
-        queue_texts(all_texts, languages=[lang])
+        # ===============================================================
+        # Queue ONLY the language currently requested
+        # ===============================================================
 
-        fps = {t: fingerprint(t) for t in all_texts}
+        queue_texts(
+            all_texts,
+            languages=[lang],
+        )
+
+        # ===============================================================
+        # Read completed translations
+        # ===============================================================
+
+        fingerprints = {
+            text: fingerprint(text)
+            for text in all_texts
+        }
+
         cached = dict(
-            M.objects.filter(
-                source_hash__in=fps.values(),
+            Translation.objects.filter(
+                source_hash__in=fingerprints.values(),
                 target_language=lang,
                 status="ready",
-            ).values_list("source_hash", "translated_text")
+            ).values_list(
+                "source_hash",
+                "translated_text",
+            )
         )
 
         missing = False
 
-        for field_name, text in str_fields.items():
-            h = fps[text]
-            if h in cached:
-                data[field_name] = cached[h]
-                if lang == "ar" and not data.get(field_name + "_ar"):
-                    data[field_name + "_ar"] = cached[h]
+        # ===============================================================
+        # String fields
+        # ===============================================================
+
+        for field_name, source_text in string_fields.items():
+            source_hash = fingerprints[source_text]
+
+            translated = cached.get(
+                source_hash
+            )
+
+            if translated:
+                data[field_name] = translated
+
+                # Arabic frontend compatibility:
+                # title -> title_ar
+                # content -> content_ar
+                if lang == "ar":
+                    arabic_key = self.arabic_key(
+                        field_name
+                    )
+
+                    if not data.get(arabic_key):
+                        data[arabic_key] = translated
+
             else:
+                # Translation not ready yet.
+                # Keep source language for this request.
                 missing = True
 
-        for field_name, _texts in list_fields.items():
-            result = []
-            for item in data.get(field_name, []):
-                if isinstance(item, str) and item.strip():
-                    h = fps.get(item)
-                    translated = cached.get(h) if h else None
-                    result.append(translated if translated else item)
-                    if not translated:
-                        missing = True
+        # ===============================================================
+        # List fields
+        # ===============================================================
+
+        for field_name in list_fields:
+            original_values = data.get(
+                field_name,
+                [],
+            )
+
+            translated_values = []
+
+            for item in original_values:
+
+                if not (
+                    isinstance(item, str)
+                    and item.strip()
+                ):
+                    translated_values.append(
+                        item
+                    )
+                    continue
+
+                source_hash = fingerprints.get(
+                    item
+                )
+
+                translated = (
+                    cached.get(source_hash)
+                    if source_hash
+                    else None
+                )
+
+                if translated:
+                    translated_values.append(
+                        translated
+                    )
                 else:
-                    result.append(item)
-            data[field_name] = result
+                    translated_values.append(
+                        item
+                    )
+                    missing = True
+
+            data[field_name] = translated_values
+
+        # ===============================================================
+        # Background generation
+        # ===============================================================
 
         if missing:
-            threading.Thread(target=_drain_queue, daemon=True).start()
+            import threading
+
+            threading.Thread(
+                target=_drain_queue,
+                daemon=True,
+            ).start()
 
         return data
