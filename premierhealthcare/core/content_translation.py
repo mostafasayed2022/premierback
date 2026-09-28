@@ -1,37 +1,142 @@
-"""Translation queue, cache, brand protection, chunked worker."""
+"""
+On-demand public content translation.
+
+Features:
+- English source content
+- LibreTranslate backend
+- Translation cache
+- Chunked translation
+- Protected medical/brand terminology
+- Placeholder validation
+- Retry support
+"""
+
 import hashlib
 import re
 import threading
+
+import requests
+
 from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
-import requests
 
-LANGUAGES = ("en", "ar", "fr", "de", "es", "it", "tr", "ru")
+
+# =============================================================================
+# SUPPORTED LANGUAGES
+# =============================================================================
+
+LANGUAGES = (
+    "en",
+    "ar",
+    "fr",
+    "de",
+    "es",
+    "it",
+    "tr",
+    "ru",
+)
+
+
+# =============================================================================
+# CONTENT FIELDS
+# =============================================================================
 
 CONTENT_FIELDS = {
-    "Department": ("name", "description"),
-    "Service": ("name", "description"),
-    "Branch": ("name", "address", "city"),
-    "Doctor": ("specialization", "position", "bio", "languages"),
-    "Gallery": ("title", "description"),
-    "BranchGallery": ("title", "description"),
-    "Testimonial": ("role", "text"),
-    "IVDripPage": ("title", "short_description"),
-    "IVBenefit": ("title", "description"),
-    "IVAdministrationStep": ("title", "description"),
-    "IVDripProduct": (
-        "who_is_it_for", "how_it_helps", "key_ingredients", "perfect_pairings",
-        "name", "tagline", "short_description", "full_description",
-        "meta_title", "meta_description",
+    "Department": (
+        "name",
+        "description",
     ),
-    "IVDripFAQ": ("question", "answer"),
-    "ArticlesPage": ("title", "short_description"),
-    "ArticleCategory": ("name",),
-    "Article": ("title", "excerpt", "content", "tags", "meta_title", "meta_description"),
+
+    "Service": (
+        "name",
+        "description",
+    ),
+
+    "Branch": (
+        "name",
+        "address",
+        "city",
+    ),
+
+    "Doctor": (
+        "specialization",
+        "position",
+        "bio",
+        "languages",
+    ),
+
+    "Gallery": (
+        "title",
+        "description",
+    ),
+
+    "BranchGallery": (
+        "title",
+        "description",
+    ),
+
+    "Testimonial": (
+        "role",
+        "text",
+    ),
+
+    "IVDripPage": (
+        "title",
+        "short_description",
+    ),
+
+    "IVBenefit": (
+        "title",
+        "description",
+    ),
+
+    "IVAdministrationStep": (
+        "title",
+        "description",
+    ),
+
+    "IVDripProduct": (
+        "who_is_it_for",
+        "how_it_helps",
+        "key_ingredients",
+        "perfect_pairings",
+        "name",
+        "tagline",
+        "short_description",
+        "full_description",
+        "meta_title",
+        "meta_description",
+    ),
+
+    "IVDripFAQ": (
+        "question",
+        "answer",
+    ),
+
+    "ArticlesPage": (
+        "title",
+        "short_description",
+    ),
+
+    "ArticleCategory": (
+        "name",
+    ),
+
+    "Article": (
+        "title",
+        "excerpt",
+        "content",
+        "tags",
+        "meta_title",
+        "meta_description",
+    ),
 }
 
-# ── Brand protection ──────────────────────────────────────────────────────────
+
+# =============================================================================
+# PROTECTED TERMS
+# =============================================================================
 
 PROTECTED_TERMS = [
     "Premier Health Clinics",
@@ -44,197 +149,660 @@ PROTECTED_TERMS = [
     "Cloudinary",
     "Novax",
 ]
-_SORTED_TERMS = sorted(PROTECTED_TERMS, key=len, reverse=True)
-_PH = "__T{i}__"
 
+_SORTED_TERMS = sorted(
+    PROTECTED_TERMS,
+    key=len,
+    reverse=True,
+)
+
+
+# IMPORTANT:
+# Do NOT use __T0__ / __T1__.
+# LibreTranslate may alter those.
+#
+# This token is designed to survive translation.
+_PH = "ZXQPROTECTED{i}QXZ"
+
+
+# =============================================================================
+# PLACEHOLDER PROTECTION
+# =============================================================================
 
 def _protect(text: str):
-    restore: dict[str, str] = {}
-    for i, term in enumerate(_SORTED_TERMS):
-        ph = _PH.format(i=i)
-        def _sub(m, ph=ph):
-            restore[ph] = m.group(0)
-            return ph
-        text = re.compile(re.escape(term), re.IGNORECASE).sub(_sub, text)
+    """
+    Replace protected terms with translation-safe placeholders.
+
+    Example:
+
+        Premier Health Clinics
+
+    becomes:
+
+        ZXQPROTECTED0QXZ
+    """
+
+    restore = {}
+    counter = 0
+
+    for term in _SORTED_TERMS:
+
+        pattern = re.compile(
+            re.escape(term),
+            re.IGNORECASE,
+        )
+
+        def replace(match):
+            nonlocal counter
+
+            placeholder = _PH.format(
+                i=counter
+            )
+
+            counter += 1
+
+            restore[
+                placeholder
+            ] = match.group(0)
+
+            return placeholder
+
+        text = pattern.sub(
+            replace,
+            text,
+        )
+
     return text, restore
 
 
-def _restore(text: str, restore: dict) -> str:
-    for ph, original in restore.items():
-        text = text.replace(ph, original)
+def _restore(
+    text: str,
+    restore: dict,
+) -> str:
+
+    for placeholder, original in restore.items():
+        text = text.replace(
+            placeholder,
+            original,
+        )
+
     return text
 
 
-# ── Chunking ──────────────────────────────────────────────────────────────────
+# =============================================================================
+# CHUNKING
+# =============================================================================
 
 MAX_CHUNK = 3000
 
 
 def _chunk_text(text: str) -> list[str]:
-    paras = re.split(r"\n{2,}", text.strip())
-    chunks, cur, cur_len = [], [], 0
-    for p in paras:
-        if cur and cur_len + len(p) + 2 > MAX_CHUNK:
-            chunks.append("\n\n".join(cur))
-            cur, cur_len = [p], len(p)
+
+    paragraphs = re.split(
+        r"\n{2,}",
+        text.strip(),
+    )
+
+    chunks = []
+    current = []
+    current_length = 0
+
+    for paragraph in paragraphs:
+
+        paragraph_length = (
+            len(paragraph) + 2
+        )
+
+        if (
+            current
+            and
+            current_length
+            + paragraph_length
+            > MAX_CHUNK
+        ):
+            chunks.append(
+                "\n\n".join(current)
+            )
+
+            current = [
+                paragraph
+            ]
+
+            current_length = len(
+                paragraph
+            )
+
         else:
-            cur.append(p)
-            cur_len += len(p) + 2
-    if cur:
-        chunks.append("\n\n".join(cur))
+            current.append(
+                paragraph
+            )
+
+            current_length += (
+                paragraph_length
+            )
+
+    if current:
+        chunks.append(
+            "\n\n".join(current)
+        )
+
     return chunks or [text]
 
 
 def _chunk_html(html: str) -> list[str]:
+
     from bs4 import BeautifulSoup
-    soup = BeautifulSoup(html, "html.parser")
-    chunks, cur, cur_len = [], [], 0
-    for el in soup.children:
-        s = str(el)
-        if cur and cur_len + len(s) > MAX_CHUNK:
-            chunks.append("".join(cur))
-            cur, cur_len = [s], len(s)
+
+    soup = BeautifulSoup(
+        html,
+        "html.parser",
+    )
+
+    chunks = []
+
+    current = []
+
+    current_length = 0
+
+    for element in soup.children:
+
+        rendered = str(element)
+
+        if (
+            current
+            and
+            current_length
+            + len(rendered)
+            > MAX_CHUNK
+        ):
+            chunks.append(
+                "".join(current)
+            )
+
+            current = [
+                rendered
+            ]
+
+            current_length = len(
+                rendered
+            )
+
         else:
-            cur.append(s)
-            cur_len += len(s)
-    if cur:
-        chunks.append("".join(cur))
+
+            current.append(
+                rendered
+            )
+
+            current_length += len(
+                rendered
+            )
+
+    if current:
+        chunks.append(
+            "".join(current)
+        )
+
     return chunks or [html]
 
 
-# ── Core helpers ──────────────────────────────────────────────────────────────
-
-def is_translation_field(name: str) -> bool:
-    return bool(re.search(r"_(ar|fr|de|es|it|tr|ru)$", name))
-
+# =============================================================================
+# HELPERS
+# =============================================================================
 
 def model():
-    return apps.get_model("client", "ContentTranslation")
+    return apps.get_model(
+        "client",
+        "ContentTranslation",
+    )
 
 
-def text_format(text: str) -> str:
-    return "html" if re.search(r"</?[a-zA-Z][^>]*>", text) else "text"
+def text_format(
+    text: str,
+) -> str:
+
+    return (
+        "html"
+        if re.search(
+            r"</?[a-zA-Z][^>]*>",
+            text,
+        )
+        else "text"
+    )
 
 
-def fingerprint(text: str) -> str:
-    return hashlib.sha256((text_format(text) + "\0" + text).encode()).hexdigest()
+# Changing this invalidates ALL old fingerprints.
+TRANSLATION_CACHE_VERSION = "v3"
 
 
-def queue_texts(texts, languages=LANGUAGES[1:]):
-    values = {t for t in texts if isinstance(t, str) and t.strip()}
+def fingerprint(
+    text: str,
+) -> str:
+
+    value = (
+        TRANSLATION_CACHE_VERSION
+        + "\0"
+        + text_format(text)
+        + "\0"
+        + text
+    )
+
+    return hashlib.sha256(
+        value.encode()
+    ).hexdigest()
+
+
+# =============================================================================
+# QUEUE
+# =============================================================================
+
+def queue_texts(
+    texts,
+    languages=LANGUAGES[1:],
+):
+
+    values = {
+        text
+        for text in texts
+        if (
+            isinstance(text, str)
+            and text.strip()
+        )
+    }
+
     if not values:
         return
-    fps = {t: fingerprint(t) for t in values}
-    M = model()
-    existing = set(
-        M.objects.filter(source_hash__in=fps.values())
-        .values_list("source_hash", "target_language")
-    )
-    rows = [
-        M(source_hash=fps[t], source_text=t, text_format=text_format(t), target_language=lang)
-        for t in values
-        for lang in languages
-        if lang in LANGUAGES and lang != "en" and (fps[t], lang) not in existing
-    ]
-    M.objects.bulk_create(rows, ignore_conflicts=True)
 
+    fingerprints = {
+        text: fingerprint(text)
+        for text in values
+    }
+
+    Translation = model()
+
+    existing = set(
+        Translation.objects.filter(
+            source_hash__in=(
+                fingerprints.values()
+            )
+        ).values_list(
+            "source_hash",
+            "target_language",
+        )
+    )
+
+    rows = []
+
+    for text in values:
+
+        source_hash = fingerprints[
+            text
+        ]
+
+        for language in languages:
+
+            if language not in LANGUAGES:
+                continue
+
+            if language == "en":
+                continue
+
+            if (
+                source_hash,
+                language,
+            ) in existing:
+                continue
+
+            rows.append(
+                Translation(
+                    source_hash=source_hash,
+                    source_text=text,
+                    text_format=text_format(
+                        text
+                    ),
+                    target_language=language,
+                    status="pending",
+                )
+            )
+
+    if rows:
+        Translation.objects.bulk_create(
+            rows,
+            ignore_conflicts=True,
+        )
+
+
+# =============================================================================
+# INSTANCE QUEUE
+# =============================================================================
 
 def queue_instance(instance):
+
     texts = []
-    for field in CONTENT_FIELDS.get(type(instance).__name__, ()):
-        value = getattr(instance, field, None)
-        texts.extend(value if isinstance(value, list) else [value])
+
+    fields = CONTENT_FIELDS.get(
+        type(instance).__name__,
+        (),
+    )
+
+    for field in fields:
+
+        value = getattr(
+            instance,
+            field,
+            None,
+        )
+
+        if isinstance(value, list):
+            texts.extend(value)
+
+        else:
+            texts.append(value)
+
     queue_texts(texts)
 
 
-def locale_from_header(header: str) -> str:
+# =============================================================================
+# HEADER LANGUAGE PARSER
+# =============================================================================
+
+def locale_from_header(
+    header: str,
+) -> str:
+
     choices = []
-    for position, token in enumerate((header or "en").split(",")):
-        parts = token.strip().split(";")
-        lang = parts[0].lower().split("-")[0]
+
+    for position, token in enumerate(
+        (header or "en").split(",")
+    ):
+
+        parts = token.strip().split(
+            ";"
+        )
+
+        language = (
+            parts[0]
+            .lower()
+            .split("-")[0]
+        )
+
         try:
+
             quality = next(
-                (float(p.strip()[2:]) for p in parts[1:] if p.strip().startswith("q=")), 1.0
+                (
+                    float(
+                        part.strip()[2:]
+                    )
+                    for part in parts[1:]
+                    if part.strip().startswith(
+                        "q="
+                    )
+                ),
+                1.0,
             )
+
         except ValueError:
+
             quality = 0
-        if lang in LANGUAGES and quality > 0:
-            choices.append((quality, -position, lang))
-    return max(choices)[2] if choices else "en"
+
+        if (
+            language in LANGUAGES
+            and quality > 0
+        ):
+            choices.append(
+                (
+                    quality,
+                    -position,
+                    language,
+                )
+            )
+
+    if not choices:
+        return "en"
+
+    return max(
+        choices
+    )[2]
 
 
-# ── Background drain ──────────────────────────────────────────────────────────
+# =============================================================================
+# BACKGROUND LOCK
+# =============================================================================
 
 _translate_lock = threading.Lock()
 
 
 def _drain_queue():
-    if not _translate_lock.acquire(blocking=False):
+
+    if not _translate_lock.acquire(
+        blocking=False
+    ):
         return
+
     try:
-        translate_pending(limit=100)
+        translate_pending(
+            limit=20
+        )
+
     finally:
         _translate_lock.release()
 
 
-# ── Translation worker ────────────────────────────────────────────────────────
+# =============================================================================
+# TRANSLATION WORKER
+# =============================================================================
 
-def translate_pending(limit=50):
+def translate_pending(
+    limit=20,
+):
+
     from datetime import timedelta
     from django.db.models import Q
 
-    retry_before = timezone.now() - timedelta(seconds=60)
+    retry_before = (
+        timezone.now()
+        - timedelta(
+            seconds=60
+        )
+    )
+
+    Translation = model()
+
     jobs = (
-        model()
-        .objects.filter(
-            Q(status="pending") | Q(status="error", updated_at__lt=retry_before)
+        Translation.objects.filter(
+            Q(status="pending")
+            |
+            Q(
+                status="error",
+                updated_at__lt=retry_before,
+            )
         )
         .order_by("id")[:limit]
     )
-    successes = failures = 0
+
+    successes = 0
+    failures = 0
 
     for job in jobs:
+
         try:
-            api_url = settings.CONTENT_TRANSLATION_URL.rstrip("/") + "/translate"
-            api_key = getattr(settings, "CONTENT_TRANSLATION_API_KEY", "")
-            base = {"source": "en", "target": job.target_language}
+
+            api_url = (
+                settings.CONTENT_TRANSLATION_URL
+                .rstrip("/")
+                + "/translate"
+            )
+
+            api_key = getattr(
+                settings,
+                "CONTENT_TRANSLATION_API_KEY",
+                "",
+            )
+
+            base = {
+                "source": "en",
+                "target": job.target_language,
+            }
+
             if api_key:
                 base["api_key"] = api_key
 
-            protected, restore_map = _protect(job.source_text)
-            chunk_fn = _chunk_html if job.text_format == "html" else _chunk_text
-            chunks = chunk_fn(protected)
+            # -----------------------------------------------------------
+            # Protect brand/medical terms
+            # -----------------------------------------------------------
+
+            protected, restore_map = _protect(
+                job.source_text
+            )
+
+            # -----------------------------------------------------------
+            # Chunk
+            # -----------------------------------------------------------
+
+            if job.text_format == "html":
+                chunks = _chunk_html(
+                    protected
+                )
+            else:
+                chunks = _chunk_text(
+                    protected
+                )
 
             translated_chunks = []
-            for chunk in chunks:
-                r = requests.post(
-                    api_url,
-                    json={**base, "q": chunk, "format": job.text_format},
-                    timeout=(3, 60),
-                )
-                r.raise_for_status()
-                t = r.json().get("translatedText")
-                if not isinstance(t, str) or not t.strip():
-                    raise ValueError("Empty translation from provider")
-                translated_chunks.append(t)
 
-            sep = "" if job.text_format == "html" else "\n\n"
-            job.translated_text = _restore(sep.join(translated_chunks), restore_map)
+            # -----------------------------------------------------------
+            # LibreTranslate
+            # -----------------------------------------------------------
+
+            for chunk in chunks:
+
+                response = requests.post(
+                    api_url,
+                    json={
+                        **base,
+                        "q": chunk,
+                        "format": job.text_format,
+                    },
+                    timeout=(
+                        5,
+                        90,
+                    ),
+                )
+
+                response.raise_for_status()
+
+                translated = (
+                    response.json()
+                    .get("translatedText")
+                )
+
+                if not (
+                    isinstance(
+                        translated,
+                        str,
+                    )
+                    and translated.strip()
+                ):
+                    raise ValueError(
+                        "Empty translation from provider"
+                    )
+
+                translated_chunks.append(
+                    translated
+                )
+
+            # -----------------------------------------------------------
+            # Join chunks
+            # -----------------------------------------------------------
+
+            separator = (
+                ""
+                if job.text_format == "html"
+                else "\n\n"
+            )
+
+            translated = separator.join(
+                translated_chunks
+            )
+
+            # -----------------------------------------------------------
+            # CRITICAL:
+            # Every protected placeholder must survive.
+            # -----------------------------------------------------------
+
+            for placeholder in restore_map:
+
+                # Exactly once.
+                if (
+                    translated.count(
+                        placeholder
+                    )
+                    != 1
+                ):
+                    raise ValueError(
+                        "Protected placeholder "
+                        "was modified or removed: "
+                        + placeholder
+                    )
+
+            # -----------------------------------------------------------
+            # Restore original terms
+            # -----------------------------------------------------------
+
+            translated = _restore(
+                translated,
+                restore_map,
+            )
+
+            job.translated_text = translated
+
             job.status = "ready"
+
             job.last_error = ""
+
             successes += 1
 
-        except requests.RequestException as e:
+        except requests.RequestException as exc:
+
             job.status = "error"
-            job.last_error = type(e).__name__
+
+            job.last_error = (
+                type(exc).__name__
+            )
+
             failures += 1
-        except (ValueError, TypeError, AttributeError) as e:
+
+        except (
+            ValueError,
+            TypeError,
+            AttributeError,
+        ) as exc:
+
             job.status = "error"
-            job.last_error = type(e).__name__
+
+            job.last_error = str(exc)[
+                :250
+            ]
+
+            failures += 1
 
         job.attempts += 1
-        job.save(update_fields=["translated_text", "status", "last_error", "attempts", "updated_at"])
+
+        job.save(
+            update_fields=[
+                "translated_text",
+                "status",
+                "last_error",
+                "attempts",
+                "updated_at",
+            ]
+        )
+
+        # Stop after first failure so we don't
+        # hammer LibreTranslate when it is broken.
         if failures:
             break
 
-    return successes, failures
+    return (
+        successes,
+        failures,
+    )
