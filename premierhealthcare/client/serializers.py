@@ -214,7 +214,7 @@ class IVDripProductSummarySerializer(TranslatableSerializerMixin,serializers.Mod
         return _absolute_file_url(obj.image, self.context.get("request"))
 
 
-class IVDripProductDetailSerializer(ITranslatableSerializerMixin,VDripProductSummarySerializer):
+class IVDripProductDetailSerializer(TranslatableSerializerMixin,VDripProductSummarySerializer):
     translatable_fields = [
         "name",
         "tagline",
