@@ -11,6 +11,7 @@ from .serializersfiles.placeserializers import*
 from rest_framework import serializers
 from django.contrib.auth.hashers import is_password_usable
 from .models import CustomUser
+from core.translation_mixin import TranslatableSerializerMixin
 
 class DoctorPublicSerializer(EntityImageMixin,serializers.ModelSerializer):
     name = serializers.CharField(source="user.get_full_name", read_only=True)
@@ -216,20 +217,37 @@ class IVDripProductDetailSerializer(IVDripProductSummarySerializer):
     def get_ogImage(self, obj):
         return _absolute_file_url(obj.og_image, self.context.get("request"))
 
-
-class ArticlesPageSerializer(serializers.ModelSerializer):
+class ArticlesPageSerializer(
+    TranslatableSerializerMixin,
+    serializers.ModelSerializer,
+):
     heroImage = serializers.SerializerMethodField()
     shortDescription = serializers.CharField(source="short_description")
+
+    translatable_fields = [
+        "title",
+        "shortDescription",
+    ]
 
     class Meta:
         model = ArticlesPage
         fields = ["title", "shortDescription", "heroImage"]
 
     def get_heroImage(self, obj):
-        return _absolute_file_url(obj.hero_image, self.context.get("request"))
+        return _absolute_file_url(
+            obj.hero_image,
+            self.context.get("request"),
+        )
 
 
-class ArticleCategoryPublicSerializer(serializers.ModelSerializer):
+class ArticleCategoryPublicSerializer(
+    TranslatableSerializerMixin,
+    serializers.ModelSerializer,
+):
+    translatable_fields = [
+        "name",
+    ]
+
     class Meta:
         model = ArticleCategory
         fields = ["id", "name", "name_ar", "slug"]
@@ -246,6 +264,7 @@ def _article_author(obj, request):
             "slug": d.user.get_full_name().lower().replace(" ", "-"),
             "avatar": _absolute_file_url(d.image, request),
         }
+
     return {
         "type": "plain",
         "name": obj.author_name,
@@ -253,56 +272,115 @@ def _article_author(obj, request):
     }
 
 
-class ArticleSummarySerializer(serializers.ModelSerializer):
+class ArticleSummarySerializer(
+    TranslatableSerializerMixin,
+    serializers.ModelSerializer,
+):
     category = serializers.SerializerMethodField()
     tags = serializers.SerializerMethodField()
     coverImage = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
     publishedAt = serializers.DateTimeField(source="published_at")
-    readingTimeMinutes = serializers.IntegerField(source="reading_time_minutes")
+    readingTimeMinutes = serializers.IntegerField(
+        source="reading_time_minutes"
+    )
+
+    translatable_fields = [
+        "title",
+        "excerpt",
+        "tags",
+    ]
 
     class Meta:
         model = Article
         fields = [
-            "id", "title", "title_ar", "slug", "category", "tags",
-            "excerpt", "excerpt_ar", "coverImage", "author", "publishedAt", "readingTimeMinutes",
+            "id",
+            "title",
+            "title_ar",
+            "slug",
+            "category",
+            "tags",
+            "excerpt",
+            "excerpt_ar",
+            "coverImage",
+            "author",
+            "publishedAt",
+            "readingTimeMinutes",
         ]
 
     def get_category(self, obj):
-        return ArticleCategoryPublicSerializer(obj.category).data if obj.category else None
+        return (
+            ArticleCategoryPublicSerializer(
+                obj.category,
+                context=self.context,
+            ).data
+            if obj.category
+            else None
+        )
 
     def get_tags(self, obj):
         return obj.tags if isinstance(obj.tags, list) else []
 
     def get_coverImage(self, obj):
-        return _absolute_file_url(obj.cover_image, self.context.get("request"))
+        return _absolute_file_url(
+            obj.cover_image,
+            self.context.get("request"),
+        )
 
     def get_author(self, obj):
-        return _article_author(obj, self.context.get("request"))
+        return _article_author(
+            obj,
+            self.context.get("request"),
+        )
 
 
 class ArticleDetailSerializer(ArticleSummarySerializer):
     content = serializers.CharField()
     content_ar = serializers.CharField()
-    # relatedArticles = serializers.SerializerMethodField()
-    metaTitle = serializers.CharField(source="meta_title", allow_null=True)
-    metaTitle_ar = serializers.CharField(source="meta_title_ar", allow_null=True)
-    metaDescription = serializers.CharField(source="meta_description", allow_null=True)
-    metaDescription_ar = serializers.CharField(source="meta_description_ar", allow_null=True)
+
+    metaTitle = serializers.CharField(
+        source="meta_title",
+        allow_null=True,
+    )
+    metaTitle_ar = serializers.CharField(
+        source="meta_title_ar",
+        allow_null=True,
+    )
+    metaDescription = serializers.CharField(
+        source="meta_description",
+        allow_null=True,
+    )
+    metaDescription_ar = serializers.CharField(
+        source="meta_description_ar",
+        allow_null=True,
+    )
     ogImage = serializers.SerializerMethodField()
+
+    translatable_fields = [
+        "title",
+        "excerpt",
+        "tags",
+        "content",
+        "metaTitle",
+        "metaDescription",
+    ]
 
     class Meta(ArticleSummarySerializer.Meta):
         fields = ArticleSummarySerializer.Meta.fields + [
-            "content", "content_ar", 
-            "metaTitle", "metaTitle_ar", "metaDescription", "metaDescription_ar", "ogImage",
+            "content",
+            "content_ar",
+            "metaTitle",
+            "metaTitle_ar",
+            "metaDescription",
+            "metaDescription_ar",
+            "ogImage",
         ]
 
-    # def get_relatedArticles(self, obj):
-    #     related = obj.related_articles.filter(is_published=True)[:3]
-    #     return ArticleSummarySerializer(related, many=True, context=self.context).data
-
     def get_ogImage(self, obj):
-        return _absolute_file_url(obj.og_image, self.context.get("request"))
+        return _absolute_file_url(
+            obj.og_image,
+            self.context.get("request"),
+        )
 # ─── Article Admin serializers ────────────────────────────────────────────────
 
 class ArticleAdminSerializer(serializers.ModelSerializer):
