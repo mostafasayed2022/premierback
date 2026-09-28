@@ -2,6 +2,9 @@ from rest_framework import serializers
 from client.models import Department , Service , Branch ,Testimonial,Gallery,GalleryCategory,GalleryImage,BranchGallery
 from apps.files.models import File
 from django.core.exceptions import ObjectDoesNotExist
+from core.translation_mixin import (
+    TranslatableSerializerMixin
+)
 
 # client/serializers.py
 
@@ -70,7 +73,11 @@ class EntityImageMixin(serializers.Serializer):
 
 
 
-class DepartmentSerializer(EntityImageMixin,serializers.ModelSerializer):
+class DepartmentSerializer(TranslatableSerializerMixin,EntityImageMixin,serializers.ModelSerializer):
+    translatable_fields = [
+        "name",
+        "description",
+    ]
     description = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
     icon = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
 
@@ -143,7 +150,11 @@ class CommaSeparatedPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
         # Return a list of primary keys (the default for many=True)
         return [item.pk for item in value] if hasattr(value, '__iter__') else value.pk
     
-class BranchSerializer(EntityImageMixin, serializers.ModelSerializer):
+class BranchSerializer(TranslatableSerializerMixin,EntityImageMixin, serializers.ModelSerializer):
+    translatable_fields = [
+        "title",
+        "description",
+    ]
     services = CommaSeparatedPrimaryKeyRelatedField(queryset=Service.objects.all(), required=False)
     service_names = serializers.SerializerMethodField(read_only=True)
 
@@ -188,7 +199,11 @@ class BranchSerializer(EntityImageMixin, serializers.ModelSerializer):
 #         return bs.effective_fee if bs else None
 
 
-class TestimonialSerializer(EntityImageMixin, EntityVideoMixin, serializers.ModelSerializer):
+class TestimonialSerializer(TranslatableSerializerMixin,EntityImageMixin, EntityVideoMixin, serializers.ModelSerializer):
+    translatable_fields = [
+        "role",
+        "text",
+    ]
     role = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
 
     class Meta:
@@ -222,7 +237,11 @@ class GalleryImageSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(url) if request else url
 
 
-class GallerySerializer(EntityImageMixin, EntityVideoMixin, serializers.ModelSerializer):
+class GallerySerializer(TranslatableSerializerMixin,EntityImageMixin, EntityVideoMixin, serializers.ModelSerializer):
+    translatable_fields = [
+        "title",
+        "description",
+    ]
     description = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
     images = GalleryImageSerializer(many=True, read_only=True)
     image_ids = serializers.ListField(
@@ -274,7 +293,11 @@ class GallerySerializer(EntityImageMixin, EntityVideoMixin, serializers.ModelSer
         return instance
 
 
-class BranchGallerySerializer(EntityImageMixin, serializers.ModelSerializer):
+class BranchGallerySerializer(TranslatableSerializerMixin,EntityImageMixin, serializers.ModelSerializer):
+    translatable_fields = [
+        "title",
+        "description",
+    ]
     branch_name = serializers.CharField(source="branch.name", read_only=True)
     description = serializers.CharField(required=False, allow_null=True, allow_blank=True, default="")
 
