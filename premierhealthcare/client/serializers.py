@@ -1,7 +1,6 @@
 # serializers.py
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import *
-
 from django.db import transaction
 from .serializersfiles.doctorserializers import *
 from .serializersfiles.bookingserializers import *
@@ -10,10 +9,15 @@ from .serializersfiles.patientserializers import *
 from .serializersfiles.placeserializers import*
 from rest_framework import serializers
 from django.contrib.auth.hashers import is_password_usable
-from .models import CustomUser
 from core.translation_mixin import TranslatableSerializerMixin
 
-class DoctorPublicSerializer(EntityImageMixin,serializers.ModelSerializer):
+class DoctorPublicSerializer(EntityImageMixin,TranslatableSerializerMixin,serializers.ModelSerializer):
+    translatable_fields = [
+        "specialization",
+        "position",
+        "bio",
+        "languages",
+    ]
     name = serializers.CharField(source="user.get_full_name", read_only=True)
     specialty = serializers.CharField(source="specialization", read_only=True)   # lowercase alias
     image_url = serializers.SerializerMethodField()
@@ -35,7 +39,12 @@ class DoctorPublicSerializer(EntityImageMixin,serializers.ModelSerializer):
 
    
 
-class ServicepublicSerializer(EntityImageMixin,serializers.ModelSerializer):
+class ServicepublicSerializer(EntityImageMixin, TranslatableSerializerMixin,serializers.ModelSerializer):
+    translatable_fields = [
+        "name",
+        "description",
+        "department_name",
+    ]
     category = serializers.SerializerMethodField()
     department_slug = serializers.CharField(source='department.slug', read_only=True)
     department_name = serializers.CharField(source='department.name', read_only=True)
@@ -134,7 +143,11 @@ def _absolute_file_url(file_obj, request):
     return request.build_absolute_uri(url) if request else url
 
 
-class IVDripPageSerializer(serializers.ModelSerializer):
+class IVDripPageSerializer(serializers.ModelSerializer,TranslatableSerializerMixin):
+    translatable_fields = [
+        "title",
+        "shortDescription",
+    ]
     heroImage = serializers.SerializerMethodField()
     title_ar = serializers.CharField()
     shortDescription = serializers.CharField(source="short_description")
@@ -148,7 +161,11 @@ class IVDripPageSerializer(serializers.ModelSerializer):
         return _absolute_file_url(obj.hero_image, self.context.get("request"))
 
 
-class IVBenefitPublicSerializer(serializers.ModelSerializer):
+class IVBenefitPublicSerializer(serializers.ModelSerializer,TranslatableSerializerMixin):
+    translatable_fields = [
+        "title",
+        "description",
+    ]
     class Meta:
         model = IVBenefit
         fields = ["id", "icon", "title", "title_ar", "description", "description_ar", "order"]
@@ -162,13 +179,22 @@ class IVAdministrationStepPublicSerializer(serializers.ModelSerializer):
         fields = ["id", "stepNumber", "icon", "title", "title_ar", "description", "description_ar"]
 
 
-class IVDripFAQPublicSerializer(serializers.ModelSerializer):
+class IVDripFAQPublicSerializer(TranslatableSerializerMixin,serializers.ModelSerializer):
+    translatable_fields = [
+        "question",
+        "answer",
+    ]
     class Meta:
         model = IVDripFAQ
         fields = ["id", "question", "question_ar", "answer", "answer_ar", "order"]
 
 
-class IVDripProductSummarySerializer(serializers.ModelSerializer):
+class IVDripProductSummarySerializer(TranslatableSerializerMixin,serializers.ModelSerializer):
+    translatable_fields = [
+        "name",
+        "tagline",
+        "shortDescription",
+    ]
     tagline = serializers.CharField()
     shortDescription = serializers.CharField(source="short_description")
     shortDescription_ar = serializers.CharField(source="short_description_ar")
@@ -188,7 +214,19 @@ class IVDripProductSummarySerializer(serializers.ModelSerializer):
         return _absolute_file_url(obj.image, self.context.get("request"))
 
 
-class IVDripProductDetailSerializer(IVDripProductSummarySerializer):
+class IVDripProductDetailSerializer(ITranslatableSerializerMixin,VDripProductSummarySerializer):
+    translatable_fields = [
+        "name",
+        "tagline",
+        "shortDescription",
+        "whoIsItFor",
+        "howItHelps",
+        "keyIngredients",
+        "perfectPairings",
+        "fullDescription",
+        "metaTitle",
+        "metaDescription",
+    ]
     whoIsItFor = serializers.CharField(source="who_is_it_for")
     howItHelps = serializers.CharField(source="how_it_helps")
     keyIngredients = serializers.CharField(source="key_ingredients")
