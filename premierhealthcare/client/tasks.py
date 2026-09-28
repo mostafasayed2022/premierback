@@ -4,6 +4,13 @@ from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from .models import CustomUser, Booking
+@shared_task
+def drain_translation_queue():
+    from core.content_translation import translate_pending
+    successes, failures = translate_pending(limit=100)
+    return {"successes": successes, "failures": failures}
+
+
 
 @shared_task
 def send_otp_email_task(user_id, otp_code):
