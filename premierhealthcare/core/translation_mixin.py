@@ -10,9 +10,21 @@ class TranslatableSerializerMixin:
 
     def get_language(self) -> str:
         request = self.context.get("request")
+
         if not request:
             return self.source_language
+
+    # Explicit query parameter wins.
         lang = (request.query_params.get("lang") or "").lower().strip()
+
+    # Frontend currently sends Accept-Language.
+        if not lang:
+            header = request.headers.get("Accept-Language", "")
+            lang = header.split(",")[0].strip().lower()
+
+    # Normalize values such as ar-EG -> ar
+            lang = lang.split("-")[0].strip()
+
         return lang if lang in LANGUAGES else self.source_language
 
     def to_representation(self, instance):
