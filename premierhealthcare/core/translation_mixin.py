@@ -1,3 +1,4 @@
+
 import threading
 from django.apps import apps
 from core.content_translation import LANGUAGES, fingerprint, queue_texts, _drain_queue
@@ -21,7 +22,6 @@ class TranslatableSerializerMixin:
             return data
 
         M = apps.get_model("client", "ContentTranslation")
-
         str_fields: dict[str, str] = {}
         list_fields: dict[str, list] = {}
 
