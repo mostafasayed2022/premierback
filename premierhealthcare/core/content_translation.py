@@ -391,6 +391,107 @@ def fingerprint(
     ).hexdigest()
 
 
+def _split_protected_segments(text: str):
+    """
+    Split text into:
+      ("text", normal text)
+      ("protected", original protected term)
+
+    Protected terms are NEVER sent to LibreTranslate.
+    """
+    if not text:
+        return [("text", text)]
+
+    pattern = re.compile(
+        "(" + "|".join(
+            re.escape(term)
+            for term in _SORTED_TERMS
+        ) + ")",
+        re.IGNORECASE,
+    )
+
+    parts = []
+    last = 0
+
+    for match in pattern.finditer(text):
+        if match.start() > last:
+            parts.append(
+                ("text", text[last:match.start()])
+            )
+
+        parts.append(
+            ("protected", match.group(0))
+        )
+
+        last = match.end()
+
+    if last < len(text):
+        parts.append(
+            ("text", text[last:])
+        )
+
+    return parts or [("text", text)]
+
+
+def _translate_preserving_terms(
+    text: str,
+    target_language: str,
+    text_format_value: str,
+    api_url: str,
+    base: dict,
+) -> str:
+    """
+    Translate only non-protected segments.
+
+    Protected brand/medical terms are inserted back unchanged.
+    """
+
+    segments = _split_protected_segments(text)
+
+    output = []
+
+    for kind, value in segments:
+
+        if kind == "protected":
+            output.append(value)
+            continue
+
+        if not value.strip():
+            output.append(value)
+            continue
+
+        for chunk in (
+            _chunk_html(value)
+            if text_format_value == "html"
+            else _chunk_text(value)
+        ):
+            response = requests.post(
+                api_url,
+                json={
+                    **base,
+                    "q": chunk,
+                    "format": text_format_value,
+                },
+                timeout=(5, 90),
+            )
+
+            response.raise_for_status()
+
+            translated = response.json().get(
+                "translatedText"
+            )
+
+            if not (
+                isinstance(translated, str)
+                and translated.strip()
+            ):
+                raise ValueError(
+                    "Empty translation from provider"
+                )
+
+            output.append(translated)
+
+    return "".join(output)
 # =============================================================================
 # QUEUE
 # =============================================================================
