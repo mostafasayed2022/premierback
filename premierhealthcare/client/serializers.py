@@ -11,7 +11,7 @@ from rest_framework import serializers
 from django.contrib.auth.hashers import is_password_usable
 from core.translation_mixin import TranslatableSerializerMixin
 
-class DoctorPublicSerializer(EntityImageMixin,TranslatableSerializerMixin,serializers.ModelSerializer):
+class DoctorPublicSerializer(TranslatableSerializerMixin,EntityImageMixin,serializers.ModelSerializer):
     translatable_fields = [
         "specialization",
         "position",
@@ -39,7 +39,7 @@ class DoctorPublicSerializer(EntityImageMixin,TranslatableSerializerMixin,serial
 
    
 
-class ServicepublicSerializer(EntityImageMixin, TranslatableSerializerMixin,serializers.ModelSerializer):
+class ServicepublicSerializer(TranslatableSerializerMixin,EntityImageMixin,serializers.ModelSerializer):
     translatable_fields = [
         "name",
         "description",
@@ -143,7 +143,7 @@ def _absolute_file_url(file_obj, request):
     return request.build_absolute_uri(url) if request else url
 
 
-class IVDripPageSerializer(serializers.ModelSerializer,TranslatableSerializerMixin):
+class IVDripPageSerializer(TranslatableSerializerMixin,serializers.ModelSerializer):
     translatable_fields = [
         "title",
         "shortDescription",
@@ -161,7 +161,7 @@ class IVDripPageSerializer(serializers.ModelSerializer,TranslatableSerializerMix
         return _absolute_file_url(obj.hero_image, self.context.get("request"))
 
 
-class IVBenefitPublicSerializer(serializers.ModelSerializer,TranslatableSerializerMixin):
+class IVBenefitPublicSerializer(TranslatableSerializerMixin,serializers.ModelSerializer):
     translatable_fields = [
         "title",
         "description",
