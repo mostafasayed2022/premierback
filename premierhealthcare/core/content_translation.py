@@ -846,119 +846,169 @@ def locale_from_header(
 # PUBLIC PAYLOAD LOCALIZATION
 # =============================================================================
 
-def localize_payload(
-    payload,
-    locale,
-):
+def translate_text(text, locale):
     """
-    Translate cached public API text.
+    Translate one English string on demand.
+    Nothing is persisted to the database.
+    """
+    if locale == "en":
+        return text
 
-    IMPORTANT:
-    No network request is performed here.
+    if not isinstance(text, str) or not text.strip():
+        return text
 
-    Missing translations are queued and handled
-    later by the background worker.
+    # Don't send already-Arabic text back through English -> Arabic.
+    if locale == "ar" and re.search(r"[\u0600-\u06FF]", text):
+        return text
+
+    url = settings.CONTENT_TRANSLATION_URL.rstrip("/") + "/translate"
+
+    payload = {
+        "q": text,
+        "source": "en",
+        "target": locale,
+        "format": text_format(text),
+    }
+
+    api_key = getattr(
+        settings,
+        "CONTENT_TRANSLATION_API_KEY",
+        "",
+    )
+
+    if api_key:
+        payload["api_key"] = api_key
+
+    try:
+        response = requests.post(
+            url,
+            json=payload,
+            timeout=(3, 30),
+        )
+
+        response.raise_for_status()
+
+        translated = response.json().get("translatedText")
+
+        if (
+            not isinstance(translated, str)
+            or not translated.strip()
+        ):
+            return text
+
+        # Provider returned the original text unchanged.
+        if translated.strip().casefold() == text.strip().casefold():
+            return text
+
+        return translated
+
+    except requests.RequestException:
+        return text
+    except (ValueError, TypeError):
+        return text
+
+
+def localize_payload(payload, locale):
+    """
+    Translate public API payload on demand.
+
+    No ContentTranslation rows are created.
+    No translation is persisted.
     """
 
-    texts = set()
+    if locale == "en":
+        return payload, 0
+
+    # Deduplicate strings so the same value is translated once per request.
+    unique_texts = []
 
     def collect(value):
-
-        if isinstance(
-            value,
-            dict,
-        ):
-
+        if isinstance(value, dict):
             for key, item in value.items():
 
                 if (
                     key in PUBLIC_TEXT_KEYS
-                    and isinstance(
-                        item,
-                        str,
-                    )
+                    and isinstance(item, str)
                     and item.strip()
                 ):
-
-                    texts.add(
-                        item
-                    )
+                    if item not in unique_texts:
+                        unique_texts.append(item)
 
                 elif (
                     key in PUBLIC_TEXT_KEYS
-                    and isinstance(
-                        item,
-                        list,
-                    )
+                    and isinstance(item, list)
                 ):
-
-                    texts.update(
-                        x
-                        for x in item
+                    for x in item:
                         if (
-                            isinstance(
-                                x,
-                                str,
-                            )
+                            isinstance(x, str)
                             and x.strip()
-                        )
-                    )
+                            and x not in unique_texts
+                        ):
+                            unique_texts.append(x)
 
-                if isinstance(
-                    item,
-                    (dict, list),
-                ):
+                if isinstance(item, (dict, list)):
+                    collect(item)
 
-                    collect(
-                        item
-                    )
-
-        elif isinstance(
-            value,
-            list,
-        ):
-
+        elif isinstance(value, list):
             for item in value:
-                collect(
-                    item
-                )
+                collect(item)
 
-    collect(
-        payload
-    )
+    collect(payload)
 
-    if (
-        locale == "en"
-        or not texts
-    ):
+    if not unique_texts:
+        return payload, 0
 
-        return (
-            payload,
-            0,
+    translated_map = {}
+
+    for text in unique_texts:
+        translated_map[text] = translate_text(
+            text,
+            locale,
         )
-
-    # Queue any missing translation.
-    queue_texts(
-        texts
-    )
-
-    Translation = model()
-
-    cached = dict(
-        Translation.objects.filter(
-            source_hash__in=[
-                fingerprint(text)
-                for text in texts
-            ],
-            target_language=locale,
-            status="ready",
-        ).values_list(
-            "source_hash",
-            "translated_text",
-        )
-    )
 
     missing = 0
+
+    for source, translated in translated_map.items():
+        if translated == source:
+            missing += 1
+
+    def walk(value):
+        if isinstance(value, list):
+            return [walk(item) for item in value]
+
+        if not isinstance(value, dict):
+            return value
+
+        result = {}
+
+        for key, item in value.items():
+
+            if (
+                key in PUBLIC_TEXT_KEYS
+                and isinstance(item, str)
+            ):
+                result[key] = translated_map.get(
+                    item,
+                    item,
+                )
+
+            elif (
+                key in PUBLIC_TEXT_KEYS
+                and isinstance(item, list)
+            ):
+                result[key] = [
+                    translated_map.get(x, x)
+                    if isinstance(x, str)
+                    else walk(x)
+                    for x in item
+                ]
+
+            else:
+                result[key] = walk(item)
+
+        return result
+
+    return walk(payload), missing
 
     def translated(text):
 
