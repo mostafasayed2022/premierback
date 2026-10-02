@@ -908,6 +908,94 @@ def translate_text(text, locale):
         return text
 
 
+
+def translate_text_batch(texts, locale):
+    """
+    Translate multiple strings in one LibreTranslate request.
+    Nothing is persisted.
+    """
+    if locale == "en":
+        return {text: text for text in texts}
+
+    if not texts:
+        return {}
+
+    url = settings.CONTENT_TRANSLATION_URL.rstrip("/") + "/translate"
+
+    api_key = getattr(
+        settings,
+        "CONTENT_TRANSLATION_API_KEY",
+        "",
+    )
+
+    result = {}
+
+    # LibreTranslate accepts q as an array.
+    # Keep HTML and plain text in separate batches.
+    groups = {
+        "text": [],
+        "html": [],
+    }
+
+    for value in texts:
+        fmt = text_format(value)
+        groups[fmt].append(value)
+
+    for fmt, values in groups.items():
+
+        if not values:
+            continue
+
+        payload = {
+            "q": values,
+            "source": "en",
+            "target": locale,
+            "format": fmt,
+        }
+
+        if api_key:
+            payload["api_key"] = api_key
+
+        try:
+            response = requests.post(
+                url,
+                json=payload,
+                timeout=(3, 60),
+            )
+
+            response.raise_for_status()
+
+            translated = response.json().get(
+                "translatedText"
+            )
+
+            if isinstance(translated, str):
+                translated = [translated]
+
+            if not isinstance(translated, list):
+                translated = []
+
+            for source, target in zip(
+                values,
+                translated,
+            ):
+                if (
+                    isinstance(target, str)
+                    and target.strip()
+                ):
+                    result[source] = target
+                else:
+                    result[source] = source
+
+        except requests.RequestException:
+            for source in values:
+                result[source] = source
+
+        except (ValueError, TypeError):
+            for source in values:
+                result[source] = source
+
+    return result
 def localize_payload(payload, locale):
     """
     Translate public API payload on demand.
@@ -958,13 +1046,10 @@ def localize_payload(payload, locale):
     if not unique_texts:
         return payload, 0
 
-    translated_map = {}
-
-    for text in unique_texts:
-        translated_map[text] = translate_text(
-            text,
-            locale,
-        )
+    translated_map = translate_text_batch(
+    unique_texts,
+    locale,
+    )
 
     missing = 0
 
