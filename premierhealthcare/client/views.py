@@ -78,7 +78,7 @@ class DoctorListView(APIView):
             queryset = queryset.filter(branches__slug=branch).distinct()   # if branch has slug, else use name
 
         serializer = DoctorPublicSerializer(
-            doctor,
+            
             context={"request": request},
             queryset,
             many=True
