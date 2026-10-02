@@ -82,7 +82,7 @@ class DoctorListView(APIView):
             context={"request": request},
             queryset,
             many=True
-        ) 
+          ) 
         return Response(serializer.data)
 
 class ServiceListView(APIView):
