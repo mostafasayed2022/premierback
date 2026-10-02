@@ -4,11 +4,13 @@ On-demand public content translation.
 Features:
 - English source content
 - LibreTranslate backend
-- Translation cache
+- Durable translation queue
+- Cached translations
 - Chunked translation
 - Protected medical/brand terminology
 - Placeholder validation
 - Retry support
+- Public API payload localization
 """
 
 import hashlib
@@ -135,6 +137,114 @@ CONTENT_FIELDS = {
 
 
 # =============================================================================
+# PUBLIC RESPONSE TRANSLATION
+# =============================================================================
+#
+# Only these response keys are translated.
+# IDs, slugs, URLs, prices, dates, codes, etc. remain unchanged.
+#
+
+PUBLIC_TEXT_KEYS = {
+    "whoIsItFor",
+    "howItHelps",
+    "keyIngredients",
+    "perfectPairings",
+
+    "name",
+    "title",
+    "description",
+
+    "shortDescription",
+    "short_description",
+
+    "fullDescription",
+    "full_description",
+
+    "tagline",
+
+    "question",
+    "answer",
+
+    "excerpt",
+    "content",
+
+    "metaTitle",
+    "meta_title",
+
+    "metaDescription",
+    "meta_description",
+
+    "bio",
+
+    "specialization",
+    "specialty",
+    "position",
+
+    "languages",
+
+    "address",
+    "city",
+
+    "department_name",
+    "branch_name",
+    "service_name",
+
+    "role",
+    "text",
+    "tags",
+    "service_names",
+}
+
+
+# =============================================================================
+# PUBLIC API ROUTES
+# =============================================================================
+
+PUBLIC_ROUTES = {
+    "iv-drip-therapy-page",
+    "iv-drip-therapy-detail",
+
+    "articles-list",
+    "article-detail",
+    "article-categories",
+
+    "wizard-departments",
+    "wizard-services",
+    "wizard-branches",
+    "wizard-doctors",
+
+    "branches",
+    "doctors",
+
+    "departments",
+
+    "doctor-detail-direct",
+    "doctor-details",
+
+    "services",
+
+    "service-detail",
+    "service-detail-legacy",
+
+    "gallery-list",
+    "branch-gallery-public-list",
+    "testimonial-public-list",
+}
+
+
+# =============================================================================
+# TRANSLATION-FIELD HELPER
+# =============================================================================
+
+def is_translation_field(name: str) -> bool:
+    return any(
+        name.endswith(f"_{language}")
+        for language in LANGUAGES
+        if language != "en"
+    )
+
+
+# =============================================================================
 # PROTECTED TERMS
 # =============================================================================
 
@@ -150,6 +260,7 @@ PROTECTED_TERMS = [
     "Novax",
 ]
 
+
 _SORTED_TERMS = sorted(
     PROTECTED_TERMS,
     key=len,
@@ -157,11 +268,14 @@ _SORTED_TERMS = sorted(
 )
 
 
-# IMPORTANT:
-# Do NOT use __T0__ / __T1__.
-# LibreTranslate may alter those.
+# =============================================================================
+# PROTECTED PLACEHOLDER
+# =============================================================================
 #
-# This token is designed to survive translation.
+# Do NOT use __T0__, __T1__, etc.
+# LibreTranslate may modify those.
+#
+
 _PH = "ZXQPROTECTED{i}QXZ"
 
 
@@ -171,15 +285,7 @@ _PH = "ZXQPROTECTED{i}QXZ"
 
 def _protect(text: str):
     """
-    Replace protected terms with translation-safe placeholders.
-
-    Example:
-
-        Premier Health Clinics
-
-    becomes:
-
-        ZXQPROTECTED0QXZ
+    Replace protected medical/brand terms with safe placeholders.
     """
 
     restore = {}
@@ -244,6 +350,7 @@ def _chunk_text(text: str) -> list[str]:
     )
 
     chunks = []
+
     current = []
     current_length = 0
 
@@ -260,6 +367,7 @@ def _chunk_text(text: str) -> list[str]:
             + paragraph_length
             > MAX_CHUNK
         ):
+
             chunks.append(
                 "\n\n".join(current)
             )
@@ -273,6 +381,7 @@ def _chunk_text(text: str) -> list[str]:
             )
 
         else:
+
             current.append(
                 paragraph
             )
@@ -282,6 +391,7 @@ def _chunk_text(text: str) -> list[str]:
             )
 
     if current:
+
         chunks.append(
             "\n\n".join(current)
         )
@@ -301,7 +411,6 @@ def _chunk_html(html: str) -> list[str]:
     chunks = []
 
     current = []
-
     current_length = 0
 
     for element in soup.children:
@@ -315,6 +424,7 @@ def _chunk_html(html: str) -> list[str]:
             + len(rendered)
             > MAX_CHUNK
         ):
+
             chunks.append(
                 "".join(current)
             )
@@ -338,6 +448,7 @@ def _chunk_html(html: str) -> list[str]:
             )
 
     if current:
+
         chunks.append(
             "".join(current)
         )
@@ -350,6 +461,7 @@ def _chunk_html(html: str) -> list[str]:
 # =============================================================================
 
 def model():
+
     return apps.get_model(
         "client",
         "ContentTranslation",
@@ -370,7 +482,13 @@ def text_format(
     )
 
 
-# Changing this invalidates ALL old fingerprints.
+# =============================================================================
+# TRANSLATION CACHE VERSION
+# =============================================================================
+#
+# Changing this invalidates old fingerprints.
+#
+
 TRANSLATION_CACHE_VERSION = "v3"
 
 
@@ -391,46 +509,67 @@ def fingerprint(
     ).hexdigest()
 
 
-def _split_protected_segments(text: str):
-    """
-    Split text into:
-      ("text", normal text)
-      ("protected", original protected term)
+# =============================================================================
+# PROTECTED SEGMENT TRANSLATION
+# =============================================================================
 
-    Protected terms are NEVER sent to LibreTranslate.
-    """
+def _split_protected_segments(text: str):
+
     if not text:
-        return [("text", text)]
+        return [
+            ("text", text)
+        ]
 
     pattern = re.compile(
-        "(" + "|".join(
+        "("
+        + "|".join(
             re.escape(term)
             for term in _SORTED_TERMS
-        ) + ")",
+        )
+        + ")",
         re.IGNORECASE,
     )
 
     parts = []
     last = 0
 
-    for match in pattern.finditer(text):
+    for match in pattern.finditer(
+        text
+    ):
+
         if match.start() > last:
+
             parts.append(
-                ("text", text[last:match.start()])
+                (
+                    "text",
+                    text[
+                        last:
+                        match.start()
+                    ],
+                )
             )
 
         parts.append(
-            ("protected", match.group(0))
+            (
+                "protected",
+                match.group(0),
+            )
         )
 
         last = match.end()
 
     if last < len(text):
+
         parts.append(
-            ("text", text[last:])
+            (
+                "text",
+                text[last:],
+            )
         )
 
-    return parts or [("text", text)]
+    return parts or [
+        ("text", text)
+    ]
 
 
 def _translate_preserving_terms(
@@ -440,31 +579,39 @@ def _translate_preserving_terms(
     api_url: str,
     base: dict,
 ) -> str:
-    """
-    Translate only non-protected segments.
 
-    Protected brand/medical terms are inserted back unchanged.
-    """
-
-    segments = _split_protected_segments(text)
+    segments = _split_protected_segments(
+        text
+    )
 
     output = []
 
     for kind, value in segments:
 
         if kind == "protected":
-            output.append(value)
+
+            output.append(
+                value
+            )
+
             continue
 
         if not value.strip():
-            output.append(value)
+
+            output.append(
+                value
+            )
+
             continue
 
-        for chunk in (
+        chunks = (
             _chunk_html(value)
             if text_format_value == "html"
             else _chunk_text(value)
-        ):
+        )
+
+        for chunk in chunks:
+
             response = requests.post(
                 api_url,
                 json={
@@ -472,26 +619,40 @@ def _translate_preserving_terms(
                     "q": chunk,
                     "format": text_format_value,
                 },
-                timeout=(5, 90),
+                timeout=(
+                    5,
+                    90,
+                ),
             )
 
             response.raise_for_status()
 
-            translated = response.json().get(
-                "translatedText"
+            translated = (
+                response.json()
+                .get(
+                    "translatedText"
+                )
             )
 
             if not (
-                isinstance(translated, str)
+                isinstance(
+                    translated,
+                    str,
+                )
                 and translated.strip()
             ):
+
                 raise ValueError(
                     "Empty translation from provider"
                 )
 
-            output.append(translated)
+            output.append(
+                translated
+            )
 
     return "".join(output)
+
+
 # =============================================================================
 # QUEUE
 # =============================================================================
@@ -505,7 +666,10 @@ def queue_texts(
         text
         for text in texts
         if (
-            isinstance(text, str)
+            isinstance(
+                text,
+                str,
+            )
             and text.strip()
         )
     }
@@ -566,6 +730,7 @@ def queue_texts(
             )
 
     if rows:
+
         Translation.objects.bulk_create(
             rows,
             ignore_conflicts=True,
@@ -593,13 +758,24 @@ def queue_instance(instance):
             None,
         )
 
-        if isinstance(value, list):
-            texts.extend(value)
+        if isinstance(
+            value,
+            list,
+        ):
+
+            texts.extend(
+                value
+            )
 
         else:
-            texts.append(value)
 
-    queue_texts(texts)
+            texts.append(
+                value
+            )
+
+    queue_texts(
+        texts
+    )
 
 
 # =============================================================================
@@ -649,6 +825,7 @@ def locale_from_header(
             language in LANGUAGES
             and quality > 0
         ):
+
             choices.append(
                 (
                     quality,
@@ -666,6 +843,213 @@ def locale_from_header(
 
 
 # =============================================================================
+# PUBLIC PAYLOAD LOCALIZATION
+# =============================================================================
+
+def localize_payload(
+    payload,
+    locale,
+):
+    """
+    Translate cached public API text.
+
+    IMPORTANT:
+    No network request is performed here.
+
+    Missing translations are queued and handled
+    later by the background worker.
+    """
+
+    texts = set()
+
+    def collect(value):
+
+        if isinstance(
+            value,
+            dict,
+        ):
+
+            for key, item in value.items():
+
+                if (
+                    key in PUBLIC_TEXT_KEYS
+                    and isinstance(
+                        item,
+                        str,
+                    )
+                    and item.strip()
+                ):
+
+                    texts.add(
+                        item
+                    )
+
+                elif (
+                    key in PUBLIC_TEXT_KEYS
+                    and isinstance(
+                        item,
+                        list,
+                    )
+                ):
+
+                    texts.update(
+                        x
+                        for x in item
+                        if (
+                            isinstance(
+                                x,
+                                str,
+                            )
+                            and x.strip()
+                        )
+                    )
+
+                if isinstance(
+                    item,
+                    (dict, list),
+                ):
+
+                    collect(
+                        item
+                    )
+
+        elif isinstance(
+            value,
+            list,
+        ):
+
+            for item in value:
+                collect(
+                    item
+                )
+
+    collect(
+        payload
+    )
+
+    if (
+        locale == "en"
+        or not texts
+    ):
+
+        return (
+            payload,
+            0,
+        )
+
+    # Queue any missing translation.
+    queue_texts(
+        texts
+    )
+
+    Translation = model()
+
+    cached = dict(
+        Translation.objects.filter(
+            source_hash__in=[
+                fingerprint(text)
+                for text in texts
+            ],
+            target_language=locale,
+            status="ready",
+        ).values_list(
+            "source_hash",
+            "translated_text",
+        )
+    )
+
+    missing = 0
+
+    def translated(text):
+
+        nonlocal missing
+
+        if not text.strip():
+            return text
+
+        result = cached.get(
+            fingerprint(text)
+        )
+
+        if result:
+            return result
+
+        missing += 1
+
+        return text
+
+    def walk(value):
+
+        if isinstance(
+            value,
+            list,
+        ):
+
+            return [
+                walk(item)
+                for item in value
+            ]
+
+        if not isinstance(
+            value,
+            dict,
+        ):
+
+            return value
+
+        result = {
+            key: walk(item)
+            for key, item in value.items()
+        }
+
+        for key, item in value.items():
+
+            if (
+                key in PUBLIC_TEXT_KEYS
+                and isinstance(
+                    item,
+                    str,
+                )
+            ):
+
+                result[key] = translated(
+                    item
+                )
+
+                # Keep Arabic compatibility fields.
+                if locale == "ar":
+
+                    result[
+                        key + "_ar"
+                    ] = result[key]
+
+            elif (
+                key in PUBLIC_TEXT_KEYS
+                and isinstance(
+                    item,
+                    list,
+                )
+            ):
+
+                result[key] = [
+                    translated(x)
+                    if isinstance(
+                        x,
+                        str,
+                    )
+                    else walk(x)
+                    for x in item
+                ]
+
+        return result
+
+    return (
+        walk(payload),
+        missing,
+    )
+
+
+# =============================================================================
 # BACKGROUND LOCK
 # =============================================================================
 
@@ -677,14 +1061,17 @@ def _drain_queue():
     if not _translate_lock.acquire(
         blocking=False
     ):
+
         return
 
     try:
+
         translate_pending(
             limit=20
         )
 
     finally:
+
         _translate_lock.release()
 
 
@@ -710,14 +1097,18 @@ def translate_pending(
 
     jobs = (
         Translation.objects.filter(
-            Q(status="pending")
+            Q(
+                status="pending"
+            )
             |
             Q(
                 status="error",
                 updated_at__lt=retry_before,
             )
         )
-        .order_by("id")[:limit]
+        .order_by("id")[
+            :limit
+        ]
     )
 
     successes = 0
@@ -745,34 +1136,40 @@ def translate_pending(
             }
 
             if api_key:
-                base["api_key"] = api_key
 
-            # -----------------------------------------------------------
-            # Protect brand/medical terms
-            # -----------------------------------------------------------
+                base[
+                    "api_key"
+                ] = api_key
+
+            # ---------------------------------------------------------
+            # Protect medical / brand terms
+            # ---------------------------------------------------------
 
             protected, restore_map = _protect(
                 job.source_text
             )
 
-            # -----------------------------------------------------------
+            # ---------------------------------------------------------
             # Chunk
-            # -----------------------------------------------------------
+            # ---------------------------------------------------------
 
             if job.text_format == "html":
+
                 chunks = _chunk_html(
                     protected
                 )
+
             else:
+
                 chunks = _chunk_text(
                     protected
                 )
 
             translated_chunks = []
 
-            # -----------------------------------------------------------
+            # ---------------------------------------------------------
             # LibreTranslate
-            # -----------------------------------------------------------
+            # ---------------------------------------------------------
 
             for chunk in chunks:
 
@@ -793,7 +1190,9 @@ def translate_pending(
 
                 translated = (
                     response.json()
-                    .get("translatedText")
+                    .get(
+                        "translatedText"
+                    )
                 )
 
                 if not (
@@ -803,6 +1202,7 @@ def translate_pending(
                     )
                     and translated.strip()
                 ):
+
                     raise ValueError(
                         "Empty translation from provider"
                     )
@@ -811,9 +1211,9 @@ def translate_pending(
                     translated
                 )
 
-            # -----------------------------------------------------------
+            # ---------------------------------------------------------
             # Join chunks
-            # -----------------------------------------------------------
+            # ---------------------------------------------------------
 
             separator = (
                 ""
@@ -825,29 +1225,28 @@ def translate_pending(
                 translated_chunks
             )
 
-            # -----------------------------------------------------------
-            # CRITICAL:
-            # Every protected placeholder must survive.
-            # -----------------------------------------------------------
+            # ---------------------------------------------------------
+            # Validate protected placeholders
+            # ---------------------------------------------------------
 
             for placeholder in restore_map:
 
-                # Exactly once.
                 if (
                     translated.count(
                         placeholder
                     )
                     != 1
                 ):
+
                     raise ValueError(
                         "Protected placeholder "
                         "was modified or removed: "
                         + placeholder
                     )
 
-            # -----------------------------------------------------------
-            # Restore original terms
-            # -----------------------------------------------------------
+            # ---------------------------------------------------------
+            # Restore protected terms
+            # ---------------------------------------------------------
 
             translated = _restore(
                 translated,
@@ -880,9 +1279,9 @@ def translate_pending(
 
             job.status = "error"
 
-            job.last_error = str(exc)[
-                :250
-            ]
+            job.last_error = str(
+                exc
+            )[:250]
 
             failures += 1
 
@@ -898,8 +1297,7 @@ def translate_pending(
             ]
         )
 
-        # Stop after first failure so we don't
-        # hammer LibreTranslate when it is broken.
+        # Stop if LibreTranslate itself is failing.
         if failures:
             break
 
