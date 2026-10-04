@@ -1,109 +1,56 @@
-from django.utils.cache import patch_vary_headers
 from django.utils.deprecation import MiddlewareMixin
 
 from core.content_translation import (
-    LANGUAGES,
-    PUBLIC_ROUTES,
-    locale_from_header,
     localize_payload,
 )
 
 
-class PublicContentTranslationMiddleware(
-    MiddlewareMixin
-):
+class PublicContentTranslationMiddleware(MiddlewareMixin):
 
-    def process_template_response(
-        self,
-        request,
-        response,
-    ):
+    def process_template_response(self, request, response):
 
         match = request.resolver_match
-
-        # -------------------------------------------------------------
-        # Only translate public GET API responses.
-        # -------------------------------------------------------------
 
         if (
             request.method != "GET"
             or not match
-            or match.url_name not in PUBLIC_ROUTES
+            or match.url_name not in {
+                "iv-drip-therapy-page",
+                "iv-drip-therapy-detail",
+                "articles-list",
+                "article-detail",
+                "article-categories",
+                "wizard-departments",
+                "wizard-services",
+                "wizard-branches",
+                "wizard-doctors",
+                "branches",
+                "doctors",
+                "departments",
+                "doctor-detail-direct",
+                "doctor-details",
+                "services",
+                "service-detail",
+                "service-detail-legacy",
+                "gallery-list",
+                "branch-gallery-public-list",
+                "testimonial-public-list",
+            }
             or response.status_code != 200
-            or not hasattr(
-                response,
-                "data",
-            )
+            or not hasattr(response, "data")
         ):
-
             return response
 
-        # -------------------------------------------------------------
-        # Explicit ?lang=xx has priority.
-        # Example:
-        #
-        # /api/articles/?lang=ar
-        #
-        # -------------------------------------------------------------
+        locale = getattr(request, "lang", "en")
 
-        requested_language = (
-            request.GET.get(
-                "lang",
-                "",
-            )
-            .strip()
-            .lower()
-            .split("-")[0]
+        response.data, missing = localize_payload(
+            response.data,
+            locale,
         )
 
-        if (
-            requested_language
-            in LANGUAGES
-        ):
-
-            locale = requested_language
-
-        else:
-
-            locale = locale_from_header(
-                request.headers.get(
-                    "Accept-Language",
-                    "",
-                )
-            )
-
-        # -------------------------------------------------------------
-        # Localize cached content.
-        # -------------------------------------------------------------
-
-        response.data, missing = (
-            localize_payload(
-                response.data,
-                locale,
-            )
-        )
-
-        # -------------------------------------------------------------
-        # Headers
-        # -------------------------------------------------------------
-
-        response[
-            "Content-Language"
-        ] = locale
-
-        response[
-            "X-Translation-Status"
-        ] = (
-            "pending"
-            if missing
-            else "ready"
-        )
-
-        patch_vary_headers(
-            response,
-            [
-                "Accept-Language",
-            ],
+        response["Content-Language"] = locale
+        response["X-Translation-Status"] = (
+            "pending" if missing else "ready"
         )
 
         return response
