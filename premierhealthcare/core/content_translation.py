@@ -1201,7 +1201,7 @@ def _drain_queue():
 
     try:
 
-        translate_pending(
+        translate_pending_mymemory(
             limit=20
         )
 
@@ -1440,3 +1440,101 @@ def translate_pending(
         successes,
         failures,
     )
+
+
+# =============================================================================
+# MYMEMORY FREE TRANSLATION API
+# =============================================================================
+
+MYMEMORY_URL = "https://api.mymemory.translated.net/get"
+MYMEMORY_EMAIL = "mohamedhossamabdelraham@gmail.com"  # increases limit to 10k/day
+
+
+def _mymemory_translate(text: str, target: str) -> str:
+    """
+    Free translation via MyMemory API.
+    Limit: 10,000 words/day with registered email.
+    """
+    import re
+
+    # Skip if already in target language (Arabic detection)
+    if target == "ar" and re.search(r"[\u0600-\u06FF]", text):
+        return text
+
+    # MyMemory has 500 char limit per request — use first 500 chars for short fields
+    chunk = text[:500] if len(text) > 500 else text
+
+    r = requests.get(
+        MYMEMORY_URL,
+        params={
+            "q": chunk,
+            "langpair": f"en|{target}",
+            "de": MYMEMORY_EMAIL,
+        },
+        timeout=10,
+    )
+    r.raise_for_status()
+    data = r.json()
+
+    translated = data.get("responseData", {}).get("translatedText", "")
+    if not translated or not translated.strip():
+        raise ValueError("Empty translation from MyMemory")
+
+    # MyMemory sometimes returns error messages
+    if "MYMEMORY WARNING" in translated or translated.startswith("PLEASE SELECT"):
+        raise ValueError(f"MyMemory quota/error: {translated}")
+
+    return translated
+
+
+def translate_pending_mymemory(limit=20):
+    """Process pending translations using MyMemory free API."""
+    from datetime import timedelta
+    from django.db.models import Q
+
+    retry_before = timezone.now() - timedelta(seconds=60)
+    Translation = model()
+
+    jobs = (
+        Translation.objects.filter(
+            Q(status="pending") | Q(status="error", updated_at__lt=retry_before)
+        ).order_by("id")[:limit]
+    )
+
+    successes = failures = 0
+
+    for job in jobs:
+        try:
+            protected, restore_map = _protect(job.source_text)
+            chunk_fn = _chunk_html if job.text_format == "html" else _chunk_text
+            chunks = chunk_fn(protected)
+
+            translated_chunks = []
+            for chunk in chunks:
+                translated = _mymemory_translate(chunk, job.target_language)
+                translated_chunks.append(translated)
+
+            sep = "" if job.text_format == "html" else "\n\n"
+            result = sep.join(translated_chunks)
+            job.translated_text = _restore(result, restore_map)
+            job.status = "ready"
+            job.last_error = ""
+            successes += 1
+
+        except requests.RequestException as e:
+            job.status = "error"
+            job.last_error = f"RequestException: {type(e).__name__}"
+            failures += 1
+        except (ValueError, TypeError, AttributeError) as e:
+            job.status = "error"
+            job.last_error = str(e)[:250]
+            failures += 1
+
+        job.attempts += 1
+        job.save(
+            update_fields=["translated_text", "status", "last_error", "attempts", "updated_at"]
+        )
+        if failures:
+            break
+
+    return successes, failures
