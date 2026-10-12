@@ -1319,13 +1319,23 @@ def translate_pending(limit=5):
     retry_before = timezone.now() - timedelta(seconds=60)
     Translation = model()
 
-    jobs = (
+    jobs = list(
         Translation.objects.filter(
-            Q(status="pending")
-            | Q(status="error", updated_at__lt=retry_before)
+            status="pending"
         )
         .order_by("id")[:limit]
     )
+    remaining = limit - len(jobs)
+    if remaining:
+        retry_before = timezone.now() - timedelta(minutes=15)
+        
+        jobs.extend(
+            Translation.objects.filter(
+                status="error",
+                attempts__lt=20,
+                updated_at__lt=retry_before,
+            ).order_by("updated_at")[:remaining]
+        )
 
     successes = 0
     failures = 0
