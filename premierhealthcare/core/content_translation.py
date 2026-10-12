@@ -733,8 +733,19 @@ def queue_texts(
 
         Translation.objects.bulk_create(
             rows,
-            ignore_conflicts=True,
+            ingnore_conflicts=True,
         )
+        from django.db import transaction
+        def dispatch_translation():
+            try:
+                from client.tasks import drain_translation_queue
+                drain_translation_queue.delay()
+            except Exception:
+                import logging
+                logging.getlogger(__name__).exception(
+                    "Could not dispatch translation queue"
+                )
+        transaction.on_comit(dispatch_translation)
 
 
 # =============================================================================
