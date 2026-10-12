@@ -1214,214 +1214,82 @@ def _drain_queue():
 # TRANSLATION WORKER
 # =============================================================================
 
-def translate_pending(
-    limit=20,
-):
-
+def translate_pending(limit=5):
     from datetime import timedelta
     from django.db.models import Q
 
-    retry_before = (
-        timezone.now()
-        - timedelta(
-            seconds=60
-        )
-    )
-
+    retry_before = timezone.now() - timedelta(seconds=60)
     Translation = model()
 
     jobs = (
         Translation.objects.filter(
-            Q(
-                status="pending"
-            )
-            |
-            Q(
-                status="error",
-                updated_at__lt=retry_before,
-            )
+            Q(status="pending")
+            | Q(status="error", updated_at__lt=retry_before)
         )
-        .order_by("id")[
-            :limit
-        ]
+        .order_by("id")[:limit]
     )
 
     successes = 0
     failures = 0
 
+    api_url = (
+        settings.MADLAD_TRANSLATION_URL.rstrip("/") + "/translate"
+    )
+
     for job in jobs:
-
         try:
-
-            api_url = (
-                settings.CONTENT_TRANSLATION_URL
-                .rstrip("/")
-                + "/translate"
-            )
-
-            api_key = getattr(
-                settings,
-                "CONTENT_TRANSLATION_API_KEY",
-                "",
-            )
-
-            base = {
-                "source": "en",
-                "target": job.target_language,
-            }
-
-            if api_key:
-
-                base[
-                    "api_key"
-                ] = api_key
-
-            # ---------------------------------------------------------
-            # Protect medical / brand terms
-            # ---------------------------------------------------------
-
-            protected, restore_map = _protect(
-                job.source_text
-            )
-
-            # ---------------------------------------------------------
-            # Chunk
-            # ---------------------------------------------------------
+            protected, restore_map = _protect(job.source_text)
 
             if job.text_format == "html":
-
-                chunks = _chunk_html(
-                    protected
-                )
-
+                chunks = _chunk_html(protected)
             else:
-
-                chunks = _chunk_text(
-                    protected
-                )
+                chunks = _chunk_text(protected)
 
             translated_chunks = []
 
-            # ---------------------------------------------------------
-            # LibreTranslate
-            # ---------------------------------------------------------
-
             for chunk in chunks:
-
                 response = requests.post(
                     api_url,
                     json={
-                        **base,
-                        "q": chunk,
-                        "format": job.text_format,
+                        "text": chunk,
+                        "target_language": job.target_language,
                     },
-                    timeout=(
-                        5,
-                        90,
-                    ),
+                    timeout=(3, 180),
                 )
-
                 response.raise_for_status()
 
-                translated = (
-                    response.json()
-                    .get(
-                        "translatedText"
-                    )
-                )
+                translated = response.json().get("translation")
 
-                if not (
-                    isinstance(
-                        translated,
-                        str,
-                    )
-                    and translated.strip()
-                ):
+                if not isinstance(translated, str) or not translated.strip():
+                    raise ValueError("MADLAD returned an empty translation")
 
-                    raise ValueError(
-                        "Empty translation from provider"
-                    )
+                translated_chunks.append(translated)
 
-                translated_chunks.append(
-                    translated
-                )
-
-            # ---------------------------------------------------------
-            # Join chunks
-            # ---------------------------------------------------------
-
-            separator = (
-                ""
-                if job.text_format == "html"
-                else "\n\n"
-            )
-
-            translated = separator.join(
-                translated_chunks
-            )
-
-            # ---------------------------------------------------------
-            # Validate protected placeholders
-            # ---------------------------------------------------------
+            separator = "" if job.text_format == "html" else "\n\n"
+            translated = separator.join(translated_chunks)
 
             for placeholder in restore_map:
-
-                if (
-                    translated.count(
-                        placeholder
-                    )
-                    != 1
-                ):
-
+                if translated.count(placeholder) != 1:
                     raise ValueError(
-                        "Protected placeholder "
-                        "was modified or removed: "
-                        + placeholder
+                        f"Protected placeholder was modified: {placeholder}"
                     )
 
-            # ---------------------------------------------------------
-            # Restore protected terms
-            # ---------------------------------------------------------
-
-            translated = _restore(
-                translated,
-                restore_map,
-            )
-
-            job.translated_text = translated
-
+            job.translated_text = _restore(translated, restore_map)
             job.status = "ready"
-
             job.last_error = ""
-
             successes += 1
 
         except requests.RequestException as exc:
-
             job.status = "error"
-
-            job.last_error = (
-                type(exc).__name__
-            )
-
+            job.last_error = f"MADLAD request: {type(exc).__name__}"
             failures += 1
 
-        except (
-            ValueError,
-            TypeError,
-            AttributeError,
-        ) as exc:
-
+        except (ValueError, TypeError, AttributeError) as exc:
             job.status = "error"
-
-            job.last_error = str(
-                exc
-            )[:250]
-
+            job.last_error = str(exc)[:250]
             failures += 1
 
         job.attempts += 1
-
         job.save(
             update_fields=[
                 "translated_text",
@@ -1432,14 +1300,10 @@ def translate_pending(
             ]
         )
 
-        # Stop if LibreTranslate itself is failing.
         if failures:
             break
 
-    return (
-        successes,
-        failures,
-    )
+    return successes, failures
 
 
 # =============================================================================
