@@ -733,7 +733,7 @@ def queue_texts(
 
         Translation.objects.bulk_create(
             rows,
-            ingnore_conflicts=True,
+            ignore_conflicts=True,
         )
         from django.db import transaction
         def dispatch_translation():
