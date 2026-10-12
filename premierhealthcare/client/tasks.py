@@ -4,13 +4,27 @@ from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from .models import CustomUser, Booking
-@shared_task
-def drain_translation_queue():
-    from core.content_translation import translate_pending
-    successes, failures = translate_pending(limit=100)
-    return {"successes": successes, "failures": failures}
+@shared_task(
+    bind=True,
+    soft_time_limit=300,
+    time_limit=330,
+    ignore_result=True,
+)
+def drain_translation_queue(self):
+    from core.content_translation import translate_pending, model
 
+    successes, failures = translate_pending(limit=5)
 
+    Translation = model()
+
+    # Continue draining the queue without loading another model copy.
+    if Translation.objects.filter(status="pending").exists():
+        self.apply_async(countdown=2)
+
+    return {
+        "successes": successes,
+        "failures": failures,
+    }
 
 @shared_task
 def send_otp_email_task(user_id, otp_code):
