@@ -745,7 +745,7 @@ def queue_texts(
                 logging.getlogger(__name__).exception(
                     "Could not dispatch translation queue"
                 )
-        transaction.on_comit(dispatch_translation)
+        transaction.on_commit(dispatch_translation)
 
 
 # =============================================================================
