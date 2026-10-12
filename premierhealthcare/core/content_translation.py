@@ -997,18 +997,105 @@ def translate_text_batch(texts, locale):
 
     return result
 def localize_payload(payload, locale):
-    """
-    Translate public API payload on demand.
-
-    No ContentTranslation rows are created.
-    No translation is persisted.
-    """
-
     if locale == "en":
         return payload, 0
 
-    # Deduplicate strings so the same value is translated once per request.
+    if locale not in LANGUAGES:
+        return payload, 0
+
     unique_texts = []
+
+    def collect(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key in PUBLIC_TEXT_KEYS:
+                    if isinstance(item, str) and item.strip():
+                        if item not in unique_texts:
+                            unique_texts.append(item)
+
+                    elif isinstance(item, list):
+                        for text in item:
+                            if (
+                                isinstance(text, str)
+                                and text.strip()
+                                and text not in unique_texts
+                            ):
+                                unique_texts.append(text)
+
+                if isinstance(item, (dict, list)):
+                    collect(item)
+
+        elif isinstance(value, list):
+            for item in value:
+                collect(item)
+
+    collect(payload)
+
+    if not unique_texts:
+        return payload, 0
+
+    # Create jobs for this requested language only.
+    queue_texts(unique_texts, languages=[locale])
+
+    Translation = model()
+    hashes = [fingerprint(text) for text in unique_texts]
+
+    cached = dict(
+        Translation.objects.filter(
+            source_hash__in=hashes,
+            target_language=locale,
+            status="ready",
+        ).values_list("source_hash", "translated_text")
+    )
+
+    translated_map = {
+        text: cached.get(fingerprint(text), text)
+        for text in unique_texts
+    }
+
+    missing = sum(
+        1 for text in unique_texts
+        if text not in translated_map
+        or translated_map[text] == text
+    )
+
+    def walk(value):
+        if isinstance(value, list):
+            return [walk(item) for item in value]
+
+        if not isinstance(value, dict):
+            return value
+
+        result = {}
+
+        for key, item in value.items():
+            if key in PUBLIC_TEXT_KEYS and isinstance(item, str):
+                result[key] = translated_map.get(item, item)
+
+            elif key in PUBLIC_TEXT_KEYS and isinstance(item, list):
+                result[key] = [
+                    translated_map.get(text, text)
+                    if isinstance(text, str)
+                    else walk(text)
+                    for text in item
+                ]
+
+            else:
+                result[key] = walk(item)
+
+        # Keep compatibility fields such as title_ar and content_ar.
+        if locale == "ar":
+            for key, item in value.items():
+                if (
+                    key in PUBLIC_TEXT_KEYS
+                    and isinstance(item, str)
+                    and item.strip()
+                ):
+                    result[f"{key}_ar"] = translated_map.get(item, item)
+
+        return result
+
+    return walk(payload), missing
 
     def collect(value):
         if isinstance(value, dict):
