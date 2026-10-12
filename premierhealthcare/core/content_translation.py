@@ -1336,12 +1336,12 @@ def translate_pending(limit=5):
 
     for job in jobs:
         try:
-            protected, restore_map = _protect(job.source_text)
+           
 
             if job.text_format == "html":
-                chunks = _chunk_html(protected)
+                chunks = _chunk_html(job.source_text)
             else:
-                chunks = _chunk_text(protected)
+                chunks = _chunk_text(job.source_text)
 
             translated_chunks = []
 
@@ -1366,13 +1366,9 @@ def translate_pending(limit=5):
             separator = "" if job.text_format == "html" else "\n\n"
             translated = separator.join(translated_chunks)
 
-            for placeholder in restore_map:
-                if translated.count(placeholder) != 1:
-                    raise ValueError(
-                        f"Protected placeholder was modified: {placeholder}"
-                    )
+           
 
-            job.translated_text = _restore(translated, restore_map)
+            job.translated_text = translated
             job.status = "ready"
             job.last_error = ""
             successes += 1
