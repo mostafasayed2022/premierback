@@ -274,7 +274,8 @@ EMAIL_USE_TLS = True
 # LibreTranslate
 CONTENT_TRANSLATION_URL = "http://127.0.0.1:5000"
 CONTENT_TRANSLATION_API_KEY = ""  # leave empty if no key
-
+#MADLADTranslate
+MADLAD_TRANSLATION_URL = "http://127.0.0.1:8010"
 # Fix SSL hostname mismatch
 EMAIL_SSL_CERTFILE = None
 EMAIL_SSL_KEYFILE = None
