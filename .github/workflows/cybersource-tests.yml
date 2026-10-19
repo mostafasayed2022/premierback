@@ -31,7 +31,7 @@ jobs:
           cache-dependency-path: premierhealthcare/Requirements.txt
 
       - name: Install backend dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -r premierhealthcare/Requirements.txt
+        run: python -m pip install --upgrade pip && python -m pip install -r premierhealthcare/Requirements.txt 'psycopg[binary]'
 
       - name: Run CyberSource regression tests
         working-directory: premierhealthcare
