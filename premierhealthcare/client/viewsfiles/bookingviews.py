@@ -183,6 +183,11 @@ class BookingStatusView(APIView):
             "id": str(booking.id),
             "status": booking.status,
             "payment_status": payment_status,
+            "transaction_id": (
+                payment.cybersource_transaction_id or payment.paymob_transaction_id
+            ) if payment else None,
+            "amount": str(payment.amount) if payment else None,
+            "currency": payment.currency if payment else "EGP",
         }, status=status.HTTP_200_OK)
 
 class MyBookingsView(generics.ListAPIView):
