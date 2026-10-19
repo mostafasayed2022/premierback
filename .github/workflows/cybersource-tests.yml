@@ -1,0 +1,45 @@
+name: CyberSource regression tests
+
+on:
+  push:
+    branches:
+      - feature/cybersource-unified-checkout
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "premierhealthcare/client/cybersource_service.py"
+      - "premierhealthcare/client/tests.py"
+      - "premierhealthcare/Requirements.txt"
+      - ".github/workflows/cybersource-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  cybersource-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: premierhealthcare/Requirements.txt
+
+      - name: Install backend dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r premierhealthcare/Requirements.txt 'psycopg[binary]'
+
+      - name: Run CyberSource regression tests
+        working-directory: premierhealthcare
+        env:
+          DJANGO_SECRET_KEY: ci-only-not-a-production-secret
+          CYBERSOURCE_MERCHANT_ID: test-merchant
+          CYBERSOURCE_KEY_ID: ci-only-test-key
+          CYBERSOURCE_SECRET_KEY: Y2ktb25seS10ZXN0LXNoYXJlZC1zZWNyZXQ=
+          CYBERSOURCE_ENV: test
+          CYBERSOURCE_TARGET_ORIGINS: https://example.com
+        run: python manage.py test client.tests --verbosity 2
