@@ -118,7 +118,7 @@ class CyberSourceService:
                 timeout=(5, 25),
             )
         except requests.RequestException as exc:
-            raise CyberSourceError("Could not connect to CyberSource.") from exc
+            raise CyberSourceError("Could not connect to CyberSource.", status_code=502) from exc
 
         if not response.ok:
             # Do not expose gateway response bodies or signed headers.
