@@ -6,7 +6,8 @@ from client.cybersource_service import CyberSourceService, CyberSourceError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import  AllowAny
+from rest_framework.permissions import AllowAny
+from rest_framework.throttling import AnonRateThrottle
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
@@ -103,7 +104,7 @@ class PaymobWebhookView(APIView):
 class CyberSourceConfirmView(APIView):
     """Verify a signed Unified Checkout result before confirming a booking."""
     permission_classes = [AllowAny]
-    throttle_classes = []  # Add a project-wide authenticated/anonymous throttle as appropriate.
+    throttle_classes = [AnonRateThrottle]
 
     @transaction.atomic
     def post(self, request):
