@@ -38,6 +38,7 @@ urlpatterns = [
     # ── Payments ──────────────────────────────────────────────────────────────
     path("payments/webhook/", PaymobWebhookView.as_view(), name="paymob-webhook"),
     path("payments/callback/", PaymobCallbackView.as_view(), name="paymob-callback"),
+    path("payments/cybersource/confirm/", CyberSourceConfirmView.as_view(), name="cybersource-confirm"),
     path("bookings/<uuid:pk>/status/", BookingStatusView.as_view(), name="booking-status"),
 
     # ── Admin Stats ───────────────────────────────────────────────────────────
