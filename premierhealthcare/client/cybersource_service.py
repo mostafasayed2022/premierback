@@ -74,14 +74,14 @@ class CyberSourceService:
         header = {"alg": "HS256", "typ": "JWT", "kid": self.key_id}
         claims = {
             "iat": now,
-            "exp": now + 300,
+            "exp": now + 110,
             "jti": str(uuid.uuid4()),
-            "iss": self.merchant_id,
+            "iss": self.merchant_id.lower(),
             "request-method": method.lower(),
             "request-resource-path": path,
             "request-host": self.host,
-            "v-c-jwt-version": "2",
-            "v-c-merchant-id": self.merchant_id,
+            "v-c-jwt-version": 2,
+            "v-c-merchant-id": self.merchant_id.lower(),
         }
         if body:
             digest = hashlib.sha256(body.encode("utf-8")).digest()
@@ -289,7 +289,7 @@ class CyberSourceService:
         if not transaction_id:
             raise CyberSourceError("CyberSource result did not include a transaction ID.")
 
-        if outcome in {"COMPLETED", "AUTHORIZED", "SETTLED", "CAPTURED", "SUCCESS", "SUCCEEDED"}:
+        if outcome in {"COMPLETED", "SETTLED", "CAPTURED", "SUCCESS", "SUCCEEDED"}:
             payment_state = "paid"
         elif outcome in {"DECLINED", "FAILED", "REJECTED", "CANCELED", "CANCELLED"} or state in {
             "DECLINED", "FAILED", "REJECTED", "CANCELED", "CANCELLED"
