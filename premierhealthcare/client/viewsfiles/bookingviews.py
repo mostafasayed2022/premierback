@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from rest_framework.throttling import AnonRateThrottle
 from client.services import PaymobService
+from client.cybersource_service import CyberSourceService, CyberSourceError
 from client.tasks import send_booking_confirmation_task
 
 
@@ -28,7 +29,7 @@ class CreateBookingView(APIView):
         branch = serializer.validated_data['branch']
         payment_method = request.data.get("payment_method", "paymob")
 
-        VALID_PAYMENT_METHODS = {"cash", "card", "insurance", "paymob"}
+        VALID_PAYMENT_METHODS = {"cash", "card", "insurance", "paymob", "cybersource"}
         if payment_method not in VALID_PAYMENT_METHODS:
             return Response({"detail": f"Invalid payment_method: {payment_method}"},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -117,6 +118,36 @@ class CreateBookingView(APIView):
                 "booking": BookingSerializer(booking).data,
                 "payment_url": "",
             }, status=status.HTTP_201_CREATED)
+
+        elif payment_method == "cybersource":
+            Payment.objects.create(
+                booking=booking,
+                amount=booking.fee,
+                currency="EGP",
+                status=PaymentStatus.PENDING,
+            )
+            try:
+                checkout = CyberSourceService().create_capture_context(booking)
+            except CyberSourceError:
+                # Remove the booking and its pending Payment record if checkout
+                # initialization fails, leaving the requested slot available.
+                booking.delete()
+                return Response(
+                    {"detail": "Unable to initialize CyberSource checkout."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+            return Response(
+                {
+                    "booking": BookingSerializer(booking).data,
+                    "payment_url": "",
+                    "cybersource": {
+                        "booking_id": str(booking.pk),
+                        **checkout,
+                    },
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
         else:  # paymob
             paymob = PaymobService()
