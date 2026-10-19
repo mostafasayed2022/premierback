@@ -289,11 +289,11 @@ class CyberSourceService:
         if not transaction_id:
             raise CyberSourceError("CyberSource result did not include a transaction ID.")
 
-        if outcome in {"COMPLETED", "SETTLED", "CAPTURED", "SUCCESS", "SUCCEEDED"}:
+        successful_states = {"COMPLETED", "SETTLED", "CAPTURED", "SUCCESS", "SUCCEEDED"}
+        failed_states = {"DECLINED", "FAILED", "REJECTED", "CANCELED", "CANCELLED"}
+        if outcome in successful_states or state in successful_states:
             payment_state = "paid"
-        elif outcome in {"DECLINED", "FAILED", "REJECTED", "CANCELED", "CANCELLED"} or state in {
-            "DECLINED", "FAILED", "REJECTED", "CANCELED", "CANCELLED"
-        }:
+        elif outcome in failed_states or state in failed_states:
             payment_state = "failed"
         else:
             payment_state = "pending"
