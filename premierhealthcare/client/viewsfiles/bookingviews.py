@@ -1,3 +1,4 @@
+import os
 
 from client.serializers import *
 from rest_framework.views import APIView
@@ -33,6 +34,18 @@ class CreateBookingView(APIView):
         if payment_method not in VALID_PAYMENT_METHODS:
             return Response({"detail": f"Invalid payment_method: {payment_method}"},
                             status=status.HTTP_400_BAD_REQUEST)
+
+        # Keep the online gateway disabled until explicitly enabled in the
+        # server-side environment. This is independent of frontend visibility.
+        if (
+            payment_method == "cybersource"
+            and os.getenv("CYBERSOURCE_ENABLED", "false").strip().lower()
+            not in {"1", "true", "yes", "on"}
+        ):
+            return Response(
+                {"detail": "CyberSource checkout is currently disabled."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         # ── Resolve patient (authenticated or guest) ────────────────────
         if request.user and request.user.is_authenticated:
