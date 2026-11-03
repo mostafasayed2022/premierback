@@ -420,6 +420,7 @@ class Payment(models.Model):
                                default=PaymentStatus.PENDING)
     paymob_order_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     paymob_transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    cybersource_transaction_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     payment_token = models.TextField(blank=True, null=True)
     paid_at = models.DateTimeField(null=True, blank=True)
     raw_webhook_payload = models.JSONField(null=True, blank=True)

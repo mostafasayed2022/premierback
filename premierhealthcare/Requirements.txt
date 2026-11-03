@@ -12,3 +12,4 @@ django-cloudinary-storage
 django-filter
 celery
 redis
+cryptography>=42.0.0
